@@ -1,47 +1,112 @@
 import React, { useState, useEffect } from 'react';
-import { listGoogleSheets, listSheetTabs, appendToSheet } from '../utils/googleApi';
+import { X, Check, FileText, Clock, FolderIcon, ClockIcon } from 'lucide-react';
 
-const TimerModal = ({ onClose, time }) => {
-  const [files, setFiles] = useState([]);
-  const [sheets, setSheets] = useState([]);
-  const [fileId, setFileId] = useState('');
-  const [sheetName, setSheetName] = useState('');
+const TimerModal = ({ onClose, time, onSuccess }) => {
+  const [editedTime, setEditedTime] = useState(time);
   const [message, setMessage] = useState('');
-  const [manualTime, setManualTime] = useState(time);
+  const [selectedFile, setSelectedFile] = useState('');
+  const [projectList, setProjectList] = useState([]);
 
   useEffect(() => {
-    listGoogleSheets().then(setFiles);
+    fetch('./projet.json')
+      .then((res) => res.json())
+      .then((data) => setProjectList(data))
+      .catch((err) => console.error('Erreur de chargement projets.json', err));
   }, []);
 
-  useEffect(() => {
-    if (fileId) listSheetTabs(fileId).then(setSheets);
-  }, [fileId]);
+  const handleValider = () => {
+    if (!selectedFile || !editedTime || !message) {
+      alert('Tous les champs doivent être remplis.');
+      return;
+    }
 
-  const handleSubmit = () => {
-    appendToSheet(fileId, sheetName, [new Date().toISOString(), manualTime, message]);
-    onClose();
+    const selected = projectList.find(p => p.nomProjet === selectedFile);
+    if (!selected) return;
+
+    window.electron.ipcRenderer.once('append-to-sheet-success', () => {
+      const sheetUrl = `https://docs.google.com/spreadsheets/d/${selected.spreadsheetId}`;
+      const notification = new Notification('Temps ajouté', {
+        body: `🕒 ${editedTime} ajouté à « ${selected.nomProjet} »`,
+      });
+
+      notification.onclick = () => {
+        window.electron.ipcRenderer.send('open-external-url', sheetUrl);
+      };
+      if (onSuccess) onSuccess(); // supprime le chrono associé
+      onClose(); // ferme la modale
+    });
+
+    window.electron.ipcRenderer.send('append-to-sheet', {
+      spreadsheetId: selected.spreadsheetId,
+      sheetName: selected.sheetName,
+      values: [[editedTime, message]],
+    });
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center">
-      <div className="bg-white rounded-2xl p-6 w-96 shadow-lg space-y-4">
-        <select onChange={e => setFileId(e.target.value)}>
-          <option value="">Choisir un fichier</option>
-          {files.map(file => (
-            <option key={file.id} value={file.id}>{file.name}</option>
-          ))}
-        </select>
-        <select onChange={e => setSheetName(e.target.value)}>
-          <option value="">Choisir une feuille</option>
-          {sheets.map(name => (
-            <option key={name} value={name}>{name}</option>
-          ))}
-        </select>
-        <input type="text" value={message} onChange={e => setMessage(e.target.value)} placeholder="Message" className="w-full p-2 border" />
-        <input type="text" value={manualTime} onChange={e => setManualTime(e.target.value)} className="w-full p-2 border" />
-        <div className="flex justify-between">
-          <button onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded">Valider</button>
-          <button onClick={onClose} className="bg-gray-400 text-white px-4 py-2 rounded">Relancer</button>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="relative bg-white rounded-lg shadow-lg p-4 w-96 no-drag">
+        {/* Bouton ✕ pour fermer */}
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 text-gray-500 hover:text-black text-lg"
+        >
+          <X size={20} />
+        </button>
+
+        <div className="mb-3 mt-4 flex gap-4">
+          {/* Select avec icône */}
+          <div className="relative w-full">
+            <FolderIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+            <select
+              className="w-full pl-10 p-2 border border-gray-300 rounded"
+              value={selectedFile}
+              onChange={(e) => setSelectedFile(e.target.value)}
+            >
+              <option value="">(aucun)</option>
+              {projectList.map((project, index) => (
+                <option key={index} value={project.nomProjet}>
+                  {project.nomProjet}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Input avec icône */}
+          <div className="relative w-full">
+            <ClockIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              className="w-full pl-10 p-2 border border-gray-300 rounded text-black"
+              value={editedTime}
+              onChange={(e) => setEditedTime(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <textarea
+            className="w-full p-2 border border-gray-300 rounded text-black"
+            rows={2}
+            placeholder="Message personnalisé"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+          />
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded flex items-center gap-1"
+          >
+            <X size={16} /> Annuler
+          </button>
+          <button
+            onClick={handleValider}
+            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1"
+          >
+            <Check size={16} /> Valider
+          </button>
         </div>
       </div>
     </div>
