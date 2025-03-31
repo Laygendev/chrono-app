@@ -4,19 +4,18 @@
   "description": "Application de chronomètres multiples avec Electron, React et Google Sheets",
   "main": "main.js",
   "scripts": {
-    "postinstall": "electron-builder install-app-deps",
     "react": "cd src && npm start",
     "electron": "wait-on http://localhost:3000 && electron .",
     "start": "concurrently -k -n \"REACT,ELECTRON\" -c \"cyan,magenta\" \"npm run react\" \"npm run electron\""
   },
   "dependencies": {
-    "electron": "^27.0.0",
-    "googleapis": "^128.0.0",
     "google-auth-library": "^9.0.0",
-    "concurrently": "^8.2.0",
-    "wait-on": "^7.0.1"
+    "googleapis": "^128.0.0"
   },
   "devDependencies": {
-    "electron-builder": "^24.7.0"
+    "concurrently": "^9.1.2",
+    "electron": "^35.1.2",
+    "electron-builder": "^24.7.0",
+    "wait-on": "^8.0.3"
   }
 }

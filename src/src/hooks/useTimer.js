@@ -1,5 +1,10 @@
 import { useState, useRef } from 'react';
 import dayjs from 'dayjs';
+import duration from 'dayjs/plugin/duration';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(duration);
+dayjs.extend(utc);
 
 export const useTimer = () => {
   const [time, setTime] = useState('00:00:00');
@@ -10,7 +15,8 @@ export const useTimer = () => {
     startTimeRef.current = Date.now();
     intervalRef.current = setInterval(() => {
       const diff = dayjs.duration(Date.now() - startTimeRef.current);
-      setTime(diff.format('HH:mm:ss'));
+      const formatted = dayjs.utc(diff.asMilliseconds()).format('HH:mm:ss');
+      setTime(formatted);
     }, 1000);
   };
 
