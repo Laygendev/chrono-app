@@ -39,7 +39,7 @@ const TimerModal = ({ onClose, time, onSuccess }) => {
     window.electron.ipcRenderer.send('append-to-sheet', {
       spreadsheetId: selected.spreadsheetId,
       sheetName: selected.sheetName,
-      values: [[editedTime, message]],
+      values: [[message, '', 'Jimmy', new Date().toLocaleDateString('fr-FR'), editedTime]],
     });
   };
 

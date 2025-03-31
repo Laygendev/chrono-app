@@ -1,5 +1,5 @@
 // main.js
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, powerMonitor } = require('electron');
 const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
@@ -47,6 +47,16 @@ function createWindow() {
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
+
+    powerMonitor.on('suspend', () => {
+        // Envoie un signal au renderer pour stopper tous les chronos
+        mainWindow.webContents.send('stop-all-chronos');
+    });
+
+    powerMonitor.on('lock-screen', () => {
+        console.log('🔒 Écran verrouillé');
+        mainWindow.webContents.send('stop-all-chronos');
+    });
 }
 
 app.whenReady().then(createWindow);
@@ -84,5 +94,5 @@ ipcMain.on('append-to-sheet', async (event, { spreadsheetId, sheetName, values }
 });
 
 ipcMain.on('open-external-url', (event, url) => {
-  shell.openExternal(url);
+    shell.openExternal(url);
 });
