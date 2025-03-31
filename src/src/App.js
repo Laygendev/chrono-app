@@ -19,6 +19,7 @@ const App = () => {
 
   return (
     <div className="min-h-screen relative flex flex-col bg-white/40 backdrop-blur-sm text-black p-2">
+      <div className="bg-red-500 text-white p-2">Test Tailwind</div>
       <button
         onClick={closeWindow}
         className="absolute top-2 right-2 text-sm text-gray-600 hover:text-black"
