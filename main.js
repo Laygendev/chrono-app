@@ -4,14 +4,14 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 require('dotenv').config();
 
-let mainWindow;
+let mainWindow; // ✅ définie en haut
 
 function createWindow() {
     const { screen } = require('electron');
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width, height } = primaryDisplay.workArea;
 
-    const win = new BrowserWindow({
+    mainWindow = new BrowserWindow({
         width: 280,
         height: 160,
         x: width - 300,         // 20px de marge droite
@@ -29,10 +29,10 @@ function createWindow() {
     });
 
     const startUrl = process.env.ELECTRON_START_URL || 'http://localhost:3000';
-    win.loadURL(startUrl);
+    mainWindow.loadURL(startUrl);
 
-    win.on('closed', () => {
-        win = null;
+    mainWindow.on('closed', () => {
+        mainWindow = null;
     });
 }
 

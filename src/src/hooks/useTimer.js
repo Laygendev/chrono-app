@@ -10,19 +10,32 @@ export const useTimer = () => {
   const [time, setTime] = useState('00:00:00');
   const intervalRef = useRef(null);
   const startTimeRef = useRef(null);
+  const elapsedRef = useRef(0);
 
-  const start = () => {
-    startTimeRef.current = Date.now();
-    intervalRef.current = setInterval(() => {
-      const diff = dayjs.duration(Date.now() - startTimeRef.current);
-      const formatted = dayjs.utc(diff.asMilliseconds()).format('HH:mm:ss');
-      setTime(formatted);
-    }, 1000);
+  const updateTime = () => {
+    const diff = Date.now() - startTimeRef.current;
+    elapsedRef.current = diff;
+    const formatted = dayjs.utc(diff).format('HH:mm:ss');
+    setTime(formatted);
   };
 
-  const pause = () => clearInterval(intervalRef.current);
+  const start = () => {
+    if (intervalRef.current) return;
+    startTimeRef.current = Date.now() - elapsedRef.current;
+    updateTime();
+    intervalRef.current = setInterval(updateTime, 1000);
+  };
+
+  const pause = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
   const reset = () => {
-    clearInterval(intervalRef.current);
+    pause();
+    elapsedRef.current = 0;
     setTime('00:00:00');
   };
 
