@@ -7,6 +7,7 @@ const TimerModal = ({ onClose, time, onSuccess }) => {
   const [selectedFile, setSelectedFile] = useState('');
   const [projectList, setProjectList] = useState([]);
   const [commits, setCommits] = useState([]);
+  const [selectedCommit, setSelectedCommit] = useState("");
 
   useEffect(() => {
     window.electron.getTodaysCommits().then((commits) => {
@@ -46,6 +47,17 @@ const TimerModal = ({ onClose, time, onSuccess }) => {
       sheetName: selected.sheetName,
       values: [[message, '', 'Jimmy', new Date().toLocaleDateString('fr-FR'), editedTime]],
     });
+  };
+
+  const handleSelectCommit = (value) => {
+    setSelectedCommit(value);
+
+    // Extraction du message
+    const match = value.match(/^refs\s+#(\d+)\s*-\s*(.*)$/i);
+    if (match) {
+      const [, ref, message] = match;
+      setMessage(message);
+    }
   };
 
   return (
@@ -100,18 +112,26 @@ const TimerModal = ({ onClose, time, onSuccess }) => {
         </div>
 
         <div className="mb-4">
-          <label htmlFor="git-commits">Commits du jour :</label>
-          <select id="git-commits" className="p-2 border rounded">
-            {commits.length > 0 ? (
-              commits.map((commit, i) => (
-                <option key={i} value={commit}>
-                  {commit}
-                </option>
-              ))
-            ) : (
-              <option disabled>Aucun commit aujourd’hui</option>
-            )}
-          </select>
+          <div className="relative w-full">
+            <FolderIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+            <select
+              id="git-commits"
+              className="w-full pl-10 p-2 border border-gray-300 rounded"
+              value={selectedCommit}
+              onChange={(e) => handleSelectCommit(e.target.value)}
+            >
+              <option value="">(aucun commit sélectionné)</option>
+              {commits.length > 0 ? (
+                commits.map((commit, index) => (
+                  <option key={index} value={commit}>
+                    {commit}
+                  </option>
+                ))
+              ) : (
+                <option disabled>Aucun commit aujourd’hui</option>
+              )}
+            </select>
+          </div>
         </div>
 
         <div className="flex justify-end gap-2">

@@ -12,51 +12,82 @@ const PROJECTS_DIR = "/Volumes/workspace/"
 let cachedRepos = [];
 let cachedCommits = [];
 
-// Trouve tous les projets Git
-function findGitRepos(basePath) {
-  const repos = [];
-  const dirs = fs.readdirSync(basePath);
-  for (const dir of dirs) {
-    const fullPath = path.join(basePath, dir);
-    const gitPath = path.join(fullPath, ".git");
-    if (fs.existsSync(gitPath) && fs.lstatSync(gitPath).isDirectory()) {
-      repos.push(fullPath);
+function findGitRepos(basePath, depth = 2) {
+    const repos = [];
+
+    function scan(dir, currentDepth) {
+        if (currentDepth > depth) return;
+
+        let entries;
+        try {
+            entries = fs.readdirSync(dir, { withFileTypes: true });
+        } catch (err) {
+            console.warn(`⚠️ Impossible de lire ${dir} : ${err.message}`);
+            return;
+        }
+
+        for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name);
+            const gitPath = path.join(fullPath, ".git");
+
+            if (entry.isDirectory()) {
+                try {
+                    if (fs.existsSync(gitPath) && fs.lstatSync(gitPath).isDirectory()) {
+                        repos.push(fullPath);
+                    } else {
+                        scan(fullPath, currentDepth + 1);
+                    }
+                } catch (err) {
+                    console.warn(`⚠️ Impossible de scanner ${fullPath} : ${err.message}`);
+                }
+            }
+        }
     }
-  }
-  return repos;
+
+    scan(basePath, 0);
+    return repos;
 }
 
 // Récupère les commits du jour pour un projet
 function getCommitsFromRepo(repoPath) {
-  const today = new Date().toISOString().slice(0, 10);
-  const command = `git log --since="${today} 00:00" --until="${today} 23:59" --pretty=format:"${path.basename(repoPath)} %h - %s"`;
+    const today = new Date().toISOString().slice(0, 10);
+    const command = `git log --since="${today} 00:00" --until="${today} 23:59" --pretty=format:"${path.basename(repoPath)} %h - %s"`;
 
-  return new Promise((resolve) => {
-    exec(command, { cwd: repoPath }, (error, stdout) => {
-      if (error) return resolve([]);
-      const commits = stdout.trim().split("\n").filter(Boolean);
-      resolve(commits);
+    return new Promise((resolve) => {
+        exec(command, { cwd: repoPath }, (error, stdout) => {
+            if (error) return resolve([]);
+
+            const commits = stdout
+                .trim()
+                .split("\n")
+                .filter((line) =>
+                    line.trim().toLowerCase().includes("refs #") // 👈 filtre côté main
+                );
+
+            resolve(commits);
+        });
     });
-  });
 }
 
 // Met à jour les commits en cache
 async function refreshCommits() {
-  const allCommits = await Promise.all(cachedRepos.map(getCommitsFromRepo));
-  cachedCommits = allCommits.flat();
-  console.log('Commits mis à jour:', cachedCommits);
+    console.log('Rafraîchissement des commits...');
+    const allCommits = await Promise.all(cachedRepos.map(getCommitsFromRepo));
+    cachedCommits = allCommits.flat();
+    console.log('Commits mis à jour:', cachedCommits);
 }
 
 // Initialise
 function setupGitCommitListener() {
-  cachedRepos = findGitRepos(PROJECTS_DIR);
-  refreshCommits(); // Initial load
-  setInterval(refreshCommits, 60 * 1000); // Rafraîchir toutes les minutes
+    cachedRepos = findGitRepos(PROJECTS_DIR);
+    console.log(cachedRepos)
+    refreshCommits(); // Initial load
+    setInterval(refreshCommits, 60 * 1000); // Rafraîchir toutes les minutes
 }
 
 // IPC handler
 ipcMain.handle("get-todays-commits", async () => {
-  return cachedCommits;
+    return cachedCommits;
 });
 
 let mainWindow; // ✅ définie en haut
@@ -96,8 +127,8 @@ function createWindow() {
     });
     const isDev = !app.isPackaged;
     const startUrl = isDev
-      ? process.env.ELECTRON_START_URL || 'http://localhost:3000'
-      : `file://${path.join(__dirname, 'build', 'index.html')}`;
+        ? process.env.ELECTRON_START_URL || 'http://localhost:3000'
+        : `file://${path.join(__dirname, 'build', 'index.html')}`;
 
     mainWindow.loadURL(startUrl);
 
