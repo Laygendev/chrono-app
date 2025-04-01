@@ -3,7 +3,61 @@ const { app, BrowserWindow, ipcMain, shell, powerMonitor } = require('electron')
 const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
+const { exec } = require('child_process');
 require('dotenv').config();
+
+// Dossier contenant tous tes projets Git
+const PROJECTS_DIR = "/Volumes/workspace/"
+
+let cachedRepos = [];
+let cachedCommits = [];
+
+// Trouve tous les projets Git
+function findGitRepos(basePath) {
+  const repos = [];
+  const dirs = fs.readdirSync(basePath);
+  for (const dir of dirs) {
+    const fullPath = path.join(basePath, dir);
+    const gitPath = path.join(fullPath, ".git");
+    if (fs.existsSync(gitPath) && fs.lstatSync(gitPath).isDirectory()) {
+      repos.push(fullPath);
+    }
+  }
+  return repos;
+}
+
+// Récupère les commits du jour pour un projet
+function getCommitsFromRepo(repoPath) {
+  const today = new Date().toISOString().slice(0, 10);
+  const command = `git log --since="${today} 00:00" --until="${today} 23:59" --pretty=format:"${path.basename(repoPath)} %h - %s"`;
+
+  return new Promise((resolve) => {
+    exec(command, { cwd: repoPath }, (error, stdout) => {
+      if (error) return resolve([]);
+      const commits = stdout.trim().split("\n").filter(Boolean);
+      resolve(commits);
+    });
+  });
+}
+
+// Met à jour les commits en cache
+async function refreshCommits() {
+  const allCommits = await Promise.all(cachedRepos.map(getCommitsFromRepo));
+  cachedCommits = allCommits.flat();
+  console.log('Commits mis à jour:', cachedCommits);
+}
+
+// Initialise
+function setupGitCommitListener() {
+  cachedRepos = findGitRepos(PROJECTS_DIR);
+  refreshCommits(); // Initial load
+  setInterval(refreshCommits, 60 * 1000); // Rafraîchir toutes les minutes
+}
+
+// IPC handler
+ipcMain.handle("get-todays-commits", async () => {
+  return cachedCommits;
+});
 
 let mainWindow; // ✅ définie en haut
 
@@ -35,13 +89,16 @@ function createWindow() {
         visualEffectState: 'active',
         alwaysOnTop: true,
         webPreferences: {
-            preload: path.join(__dirname, "preload.js"),
+            preload: path.join(app.getAppPath(), "preload.js"),
             contextIsolation: true,
             nodeIntegration: false
         }
     });
+    const isDev = !app.isPackaged;
+    const startUrl = isDev
+      ? process.env.ELECTRON_START_URL || 'http://localhost:3000'
+      : `file://${path.join(__dirname, 'build', 'index.html')}`;
 
-    const startUrl = process.env.ELECTRON_START_URL || 'http://localhost:3000';
     mainWindow.loadURL(startUrl);
 
     mainWindow.on('closed', () => {
@@ -57,6 +114,8 @@ function createWindow() {
         console.log('🔒 Écran verrouillé');
         mainWindow.webContents.send('stop-all-chronos');
     });
+
+    setupGitCommitListener();
 }
 
 app.whenReady().then(createWindow);

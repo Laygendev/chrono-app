@@ -9,5 +9,6 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.once(channel, (event, ...args) => func(...args)),
     removeListener: (channel, func) =>
       ipcRenderer.removeListener(channel, (event, ...args) => func(...args)),
-  }
+  },
+  getTodaysCommits: () => ipcRenderer.invoke('get-todays-commits')
 });

@@ -6,7 +6,8 @@
   "scripts": {
     "react": "cd src && npm start",
     "electron": "wait-on http://localhost:3000 && electron .",
-    "start": "concurrently -k -n \"REACT,ELECTRON\" -c \"cyan,magenta\" \"npm run react\" \"npm run electron\""
+    "start": "concurrently -k -n \"REACT,ELECTRON\" -c \"cyan,magenta\" \"npm run react\" \"npm run electron\"",
+    "electron:build": "electron-builder"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
@@ -17,7 +18,22 @@
   "devDependencies": {
     "concurrently": "^9.1.2",
     "electron": "^35.1.2",
-    "electron-builder": "^24.7.0",
+    "electron-builder": "^24.13.3",
     "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "com.laygendev.chronoapp",
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "files": [
+      "./src/build/**/*",
+      "./main.js",
+      "./preload.js",
+      "./package.json"
+    ]
   }
 }

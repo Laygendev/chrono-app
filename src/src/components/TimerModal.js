@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, FileText, Clock, FolderIcon, ClockIcon } from 'lucide-react';
+import { X, Check, FolderIcon, ClockIcon } from 'lucide-react';
 
 const TimerModal = ({ onClose, time, onSuccess }) => {
   const [editedTime, setEditedTime] = useState(time);
   const [message, setMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState('');
   const [projectList, setProjectList] = useState([]);
+  const [commits, setCommits] = useState([]);
 
   useEffect(() => {
+    window.electron.getTodaysCommits().then((commits) => {
+      setCommits(commits);
+    });
+
     fetch('./projet.json')
       .then((res) => res.json())
       .then((data) => setProjectList(data))
@@ -92,6 +97,21 @@ const TimerModal = ({ onClose, time, onSuccess }) => {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
           />
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="git-commits">Commits du jour :</label>
+          <select id="git-commits" className="p-2 border rounded">
+            {commits.length > 0 ? (
+              commits.map((commit, i) => (
+                <option key={i} value={commit}>
+                  {commit}
+                </option>
+              ))
+            ) : (
+              <option disabled>Aucun commit aujourd’hui</option>
+            )}
+          </select>
         </div>
 
         <div className="flex justify-end gap-2">
