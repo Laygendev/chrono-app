@@ -19,7 +19,7 @@ const COLORS = [
 ];
 
 const App = () => {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [timers, setTimers] = useState([crypto.randomUUID()]);
   const [activeTimers, setActiveTimers] = useState({});
   const [activeTimerId, setActiveTimerId] = useState(null);
@@ -28,7 +28,6 @@ const App = () => {
 
   useEffect(() => {
     const handler = (_, { name, current, total }) => {
-      console.log('la');
       setCheckingProject(name);
       setProgress({ current, total });
     };

@@ -10,6 +10,8 @@ require('dotenv').config();
 const PROJECTS_DIR = process.env.PROJECTS_DIR || "/Volumes/workspace/";
 const GIT_SCAN_DEPTH = parseInt(process.env.GIT_SCAN_DEPTH || "2", 10);
 
+app.commandLine.appendSwitch('enable-transparent-visuals');
+
 let cachedRepos = [];
 let cachedCommits = [];
 let checkedProjectList = [];
@@ -123,6 +125,7 @@ async function createWindow() {
         vibrancy: 'sidebar', // ou 'medium-light' / 'ultra-dark' selon ton style
         visualEffectState: 'active',
         alwaysOnTop: true,
+        backgroundColor: '#00000000', // <– 🔥 Ajoute ça !
         webPreferences: {
             preload: path.join(app.getAppPath(), "preload.js"),
             contextIsolation: true,
@@ -200,15 +203,12 @@ async function checkProjectSheetHeaders(project) {
         const auth = getAuth();
         const sheets = google.sheets({ version: 'v4', auth });
 
-        console.log(project.spreadsheetId);
-
         const res = await sheets.spreadsheets.values.get({
             spreadsheetId: project.spreadsheetId,
             range: `${project.sheetName}!A1:F1`,
         });
 
         const headers = res.data.values?.[0] || [];
-        console.log(`Headers de ${project.nomProjet} :`, headers);
         const expected = [
             "Objet",
             "Tracker",
@@ -219,7 +219,6 @@ async function checkProjectSheetHeaders(project) {
         ];
 
         const isValid = expected.every((col, i) => col === headers[i]);
-        console.log(isValid)
 
         return { ...project, hasHeaderIssue: !isValid };
     } catch (e) {
