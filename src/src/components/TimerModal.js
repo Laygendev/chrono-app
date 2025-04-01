@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, FolderIcon, ClockIcon } from 'lucide-react';
+import { X, Check, FolderIcon, ClockIcon, CheckSquare } from 'lucide-react';
 
 const TimerModal = ({ onClose, time, onSuccess }) => {
   const [editedTime, setEditedTime] = useState(time);
@@ -8,16 +8,18 @@ const TimerModal = ({ onClose, time, onSuccess }) => {
   const [projectList, setProjectList] = useState([]);
   const [commits, setCommits] = useState([]);
   const [selectedCommit, setSelectedCommit] = useState("");
+  const [selectedCommitUrl, setSelectedCommitUrl] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     window.electron.getTodaysCommits().then((commits) => {
       setCommits(commits);
     });
 
-    fetch('./projet.json')
-      .then((res) => res.json())
+    window.electron.ipcRenderer.invoke('get-checked-projects')
       .then((data) => setProjectList(data))
-      .catch((err) => console.error('Erreur de chargement projets.json', err));
+      .catch((err) => console.error('Erreur de chargement projets avec vérification', err));
+
   }, []);
 
   const handleValider = () => {
@@ -29,6 +31,8 @@ const TimerModal = ({ onClose, time, onSuccess }) => {
     const selected = projectList.find(p => p.nomProjet === selectedFile);
     if (!selected) return;
 
+    setIsSubmitting(true); // 🌀 loader ON
+
     window.electron.ipcRenderer.once('append-to-sheet-success', () => {
       const sheetUrl = `https://docs.google.com/spreadsheets/d/${selected.spreadsheetId}`;
       const notification = new Notification('Temps ajouté', {
@@ -38,6 +42,7 @@ const TimerModal = ({ onClose, time, onSuccess }) => {
       notification.onclick = () => {
         window.electron.ipcRenderer.send('open-external-url', sheetUrl);
       };
+      setIsSubmitting(false); // 🌀 loader OFF
       if (onSuccess) onSuccess(); // supprime le chrono associé
       onClose(); // ferme la modale
     });
@@ -45,20 +50,27 @@ const TimerModal = ({ onClose, time, onSuccess }) => {
     window.electron.ipcRenderer.send('append-to-sheet', {
       spreadsheetId: selected.spreadsheetId,
       sheetName: selected.sheetName,
-      values: [[message, '', 'Jimmy', new Date().toLocaleDateString('fr-FR'), editedTime]],
+      values: [[message, selectedCommitUrl, 'Jimmy', new Date().toLocaleDateString('fr-FR'), editedTime]],
     });
   };
 
   const handleSelectCommit = (value) => {
     setSelectedCommit(value);
+    setSelectedCommitUrl("");
 
-    // Extraction du message
     const match = value.match(/^refs\s+#(\d+)\s*-\s*(.*)$/i);
     if (match) {
       const [, ref, message] = match;
-      setMessage(message);
+      const issueUrl = `https://tracker.lajungle.fr/issues/${ref}`;
+
+      setSelectedCommitUrl(issueUrl); // stocke le lien complet
+      setMessage(message);   // remplit le champ texte
+    } else {
+      setSelectedCommit("");
+      setSelectedCommitUrl("");
     }
   };
+
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
@@ -66,7 +78,9 @@ const TimerModal = ({ onClose, time, onSuccess }) => {
         {/* Bouton ✕ pour fermer */}
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 text-gray-500 hover:text-black text-lg"
+          className={`absolute top-2 right-2 text-lg transition-colors ${isSubmitting ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-black'
+            }`}
+          disabled={isSubmitting}
         >
           <X size={20} />
         </button>
@@ -82,8 +96,8 @@ const TimerModal = ({ onClose, time, onSuccess }) => {
             >
               <option value="">(aucun)</option>
               {projectList.map((project, index) => (
-                <option key={index} value={project.nomProjet}>
-                  {project.nomProjet}
+                <option key={index} value={project.nomProjet} disabled={project.hasHeaderIssue}>
+                  {project.hasHeaderIssue ? '⚠️ ' : ''}{project.nomProjet}
                 </option>
               ))}
             </select>
@@ -113,7 +127,7 @@ const TimerModal = ({ onClose, time, onSuccess }) => {
 
         <div className="mb-4">
           <div className="relative w-full">
-            <FolderIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+            <CheckSquare className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
             <select
               id="git-commits"
               className="w-full pl-10 p-2 border border-gray-300 rounded"
@@ -137,16 +151,29 @@ const TimerModal = ({ onClose, time, onSuccess }) => {
         <div className="flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded flex items-center gap-1"
+            disabled={isSubmitting}
+            className={`px-3 py-1 rounded flex items-center gap-1 transition-all ${isSubmitting ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-200 hover:bg-gray-300'
+              }`}
           >
             <X size={16} /> Annuler
           </button>
           <button
             onClick={handleValider}
-            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1"
+            disabled={isSubmitting}
+            className={`px-3 py-1 rounded flex items-center gap-2 transition-all ${isSubmitting
+              ? 'bg-blue-400 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-700'
+              } text-white`}
           >
-            <Check size={16} /> Valider
+            {isSubmitting ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <>
+                <Check size={16} /> Valider
+              </>
+            )}
           </button>
+
         </div>
       </div>
     </div>

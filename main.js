@@ -7,12 +7,17 @@ const { exec } = require('child_process');
 require('dotenv').config();
 
 // Dossier contenant tous tes projets Git
-const PROJECTS_DIR = "/Volumes/workspace/"
+const PROJECTS_DIR = process.env.PROJECTS_DIR || "/Volumes/workspace/";
+const GIT_SCAN_DEPTH = parseInt(process.env.GIT_SCAN_DEPTH || "2", 10);
 
 let cachedRepos = [];
 let cachedCommits = [];
+let checkedProjectList = [];
 
-function findGitRepos(basePath, depth = 2) {
+const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+
+
+function findGitRepos(basePath, depth = GIT_SCAN_DEPTH) {
     const repos = [];
 
     function scan(dir, currentDepth) {
@@ -51,7 +56,7 @@ function findGitRepos(basePath, depth = 2) {
 // Récupère les commits du jour pour un projet
 function getCommitsFromRepo(repoPath) {
     const today = new Date().toISOString().slice(0, 10);
-    const command = `git log --since="${today} 00:00" --until="${today} 23:59" --pretty=format:"${path.basename(repoPath)} %h - %s"`;
+    const command = `git log --since="${today} 00:00" --until="${today} 23:59" --pretty=format:"%s"`;
 
     return new Promise((resolve) => {
         exec(command, { cwd: repoPath }, (error, stdout) => {
@@ -79,8 +84,7 @@ async function refreshCommits() {
 
 // Initialise
 function setupGitCommitListener() {
-    cachedRepos = findGitRepos(PROJECTS_DIR);
-    console.log(cachedRepos)
+    cachedRepos = findGitRepos(PROJECTS_DIR, GIT_SCAN_DEPTH);
     refreshCommits(); // Initial load
     setInterval(refreshCommits, 60 * 1000); // Rafraîchir toutes les minutes
 }
@@ -106,7 +110,7 @@ const getAuth = () => {
     return oAuth2Client;
 };
 
-function createWindow() {
+async function createWindow() {
     const { screen } = require('electron');
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width, height } = primaryDisplay.workArea;
@@ -147,6 +151,10 @@ function createWindow() {
     });
 
     setupGitCommitListener();
+
+    mainWindow.webContents.once('did-finish-load', async () => {
+        await loadProjectsWithHeaderChecks(); // ✅ ici, le renderer est prêt à écouter
+    });
 }
 
 app.whenReady().then(createWindow);
@@ -185,4 +193,65 @@ ipcMain.on('append-to-sheet', async (event, { spreadsheetId, sheetName, values }
 
 ipcMain.on('open-external-url', (event, url) => {
     shell.openExternal(url);
+});
+
+async function checkProjectSheetHeaders(project) {
+    try {
+        const auth = getAuth();
+        const sheets = google.sheets({ version: 'v4', auth });
+
+        console.log(project.spreadsheetId);
+
+        const res = await sheets.spreadsheets.values.get({
+            spreadsheetId: project.spreadsheetId,
+            range: `${project.sheetName}!A1:F1`,
+        });
+
+        const headers = res.data.values?.[0] || [];
+        console.log(`Headers de ${project.nomProjet} :`, headers);
+        const expected = [
+            "Objet",
+            "Tracker",
+            "Personne",
+            "Date",
+            "Temps passé",
+            "Temps décompté",
+        ];
+
+        const isValid = expected.every((col, i) => col === headers[i]);
+        console.log(isValid)
+
+        return { ...project, hasHeaderIssue: !isValid };
+    } catch (e) {
+        console.warn(`⚠️ Erreur sur ${project.nomProjet} :`, e.message);
+        return { ...project, hasHeaderIssue: true };
+    }
+}
+
+
+async function loadProjectsWithHeaderChecks() {
+    const raw = fs.readFileSync('./src/public/projet.json', 'utf8');
+    const projects = JSON.parse(raw);
+
+    const checked = [];
+
+    for (let index = 0; index < projects.length; index++) {
+        const project = projects[index];
+        mainWindow?.webContents.send("project-checking", {
+            current: index + 1,
+            total: projects.length,
+            name: project.nomProjet
+        });
+
+        const result = await checkProjectSheetHeaders(project);
+        checked.push(result);
+        await delay(200);
+    }
+
+    checkedProjectList = checked;
+    mainWindow.webContents.send('app-loaded');
+}
+
+ipcMain.handle('get-checked-projects', () => {
+    return checkedProjectList;
 });

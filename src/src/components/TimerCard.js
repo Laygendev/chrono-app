@@ -62,7 +62,16 @@ const TimerCard = ({ id, onDelete, onRunningChange, isActive, onActivate, color 
       pause();
     };
   }, []);
-  
+
+  useEffect(() => {
+    if (isActive) {
+      start(); // 🚀 démarrage auto quand activé
+      onRunningChange(id, true); // si tu veux suivre le statut global
+    } else {
+      pause(); // sinon on stoppe le chrono
+      onRunningChange(id, false);
+    }
+  }, [isActive]);
 
   return (
     <motion.div

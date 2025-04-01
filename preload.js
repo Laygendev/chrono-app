@@ -2,13 +2,12 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
-    send: (channel, data) => ipcRenderer.send(channel, data),
-    on: (channel, func) =>
-      ipcRenderer.on(channel, (event, ...args) => func(...args)),
-    once: (channel, func) =>
-      ipcRenderer.once(channel, (event, ...args) => func(...args)),
-    removeListener: (channel, func) =>
-      ipcRenderer.removeListener(channel, (event, ...args) => func(...args)),
+    send: (...args) => ipcRenderer.send(...args),
+    on: (...args) => ipcRenderer.on(...args),
+    once: (...args) => ipcRenderer.once(...args),
+    removeListener: (...args) => ipcRenderer.removeListener(...args),
+    invoke: (...args) => ipcRenderer.invoke(...args)
   },
-  getTodaysCommits: () => ipcRenderer.invoke('get-todays-commits')
+  getTodaysCommits: () => ipcRenderer.invoke('get-todays-commits'),
+  getProjects: () => ipcRenderer.invoke('get-projects-with-checks')
 });
