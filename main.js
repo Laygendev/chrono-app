@@ -10,8 +10,6 @@ require('dotenv').config();
 const PROJECTS_DIR = process.env.PROJECTS_DIR || "/Volumes/workspace/";
 const GIT_SCAN_DEPTH = parseInt(process.env.GIT_SCAN_DEPTH || "2", 10);
 
-app.commandLine.appendSwitch('enable-transparent-visuals');
-
 let cachedRepos = [];
 let cachedCommits = [];
 let checkedProjectList = [];
@@ -125,7 +123,6 @@ async function createWindow() {
         vibrancy: 'sidebar', // ou 'medium-light' / 'ultra-dark' selon ton style
         visualEffectState: 'active',
         alwaysOnTop: true,
-        backgroundColor: '#00000000', // <– 🔥 Ajoute ça !
         webPreferences: {
             preload: path.join(app.getAppPath(), "preload.js"),
             contextIsolation: true,

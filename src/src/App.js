@@ -19,7 +19,7 @@ const COLORS = [
 ];
 
 const App = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [timers, setTimers] = useState([crypto.randomUUID()]);
   const [activeTimers, setActiveTimers] = useState({});
   const [activeTimerId, setActiveTimerId] = useState(null);
