@@ -1,16 +1,23 @@
 {
-  "name": "multi-timer-app",
+  "name": "chrono-app",
+  "productName": "Chrono App",
   "version": "1.0.0",
   "description": "Application de chronomètres multiples avec Electron, React et Google Sheets",
   "main": "main.js",
+  "author": "Jimmy Le Boss",
+  "license": "MIT",
   "scripts": {
     "react": "cd src && npm start",
     "electron": "wait-on http://localhost:3000 && electron .",
     "start": "concurrently -k -n \"REACT,ELECTRON\" -c \"cyan,magenta\" \"npm run react\" \"npm run electron\"",
-    "electron:build": "electron-builder"
+    "react:build": "cd src && npm install && npm run build",
+    "electron:build": "npm run react:build && electron-builder",
+    "build": "cd src && npm run build",
+    "dist": "npm run build && electron-builder"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
+    "electron-log": "^5.3.3",
     "google-auth-library": "^9.0.0",
     "googleapis": "^128.0.0",
     "open": "^10.1.0"
@@ -23,6 +30,10 @@
   },
   "build": {
     "appId": "com.laygendev.chronoapp",
+    "productName": "Chrono APP",
+    "directories": {
+      "buildResources": "assets"
+    },
     "mac": {
       "target": [
         "dmg",
@@ -30,10 +41,20 @@
       ]
     },
     "files": [
-      "./src/build/**/*",
-      "./main.js",
-      "./preload.js",
-      "./package.json"
+      "main.js",
+      "config.json",
+      "preload.js",
+      "token.json",
+      "projet.json",
+      "auth.js",
+      "get-token.js",
+      {
+        "from": "src/build",
+        "to": "build",
+        "filter": [
+          "**/*"
+        ]
+      }
     ]
   }
 }

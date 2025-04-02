@@ -4,15 +4,26 @@ const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
-require('dotenv').config();
+const configPath = path.join(__dirname, 'config.json');
+const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 
 // Dossier contenant tous tes projets Git
-const PROJECTS_DIR = process.env.PROJECTS_DIR || "/Volumes/workspace/";
-const GIT_SCAN_DEPTH = parseInt(process.env.GIT_SCAN_DEPTH || "2", 10);
+const PROJECTS_DIR = config.PROJECTS_DIR || "/Volumes/workspace/";
+const GIT_SCAN_DEPTH = parseInt(config.GIT_SCAN_DEPTH || "2", 10);
+
+const log = require('electron-log');
+
+log.transports.file.resolvePath = () =>
+    path.join(app.getPath('userData'), 'logs/main.log'); // <- sûr et propre
+
+log.info('App started');
 
 let cachedRepos = [];
 let cachedCommits = [];
 let checkedProjectList = [];
+
+// app.setAppUserModelId(app.name);
+
 
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
@@ -76,10 +87,10 @@ function getCommitsFromRepo(repoPath) {
 
 // Met à jour les commits en cache
 async function refreshCommits() {
-    console.log('Rafraîchissement des commits...');
+    // log.info('Rafraîchissement des commits...');
     const allCommits = await Promise.all(cachedRepos.map(getCommitsFromRepo));
     cachedCommits = allCommits.flat();
-    console.log('Commits mis à jour:', cachedCommits);
+    // log.info('Commits mis à jour:', cachedCommits);
 }
 
 // Initialise
@@ -98,17 +109,35 @@ let mainWindow; // ✅ définie en haut
 
 // auth Google (tu dois avoir credentials.json + token.json)
 const getAuth = () => {
-    const client_id = process.env.CLIENT_ID;
-    const client_secret = process.env.CLIENT_SECRET;
-    const redirect_uris = ['http://localhost']; // fixe pour app desktop
+    try {
+        log.info('🔐 getAuth called');
 
-    const token = JSON.parse(fs.readFileSync('./token.json')); // conservé
+        const client_id = config.CLIENT_ID;
+        const client_secret = config.CLIENT_SECRET;
+        const redirect_uris = ['http://localhost'];
 
-    const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
-    oAuth2Client.setCredentials(token);
+        if (!client_id || !client_secret) {
+            throw new Error("CLIENT_ID ou CLIENT_SECRET manquant dans .env");
+        }
 
-    return oAuth2Client;
+        const tokenPath = path.join(__dirname, 'token.json');
+        if (!fs.existsSync(tokenPath)) {
+            throw new Error("❌ token.json introuvable à : " + tokenPath);
+        }
+
+        const token = JSON.parse(fs.readFileSync(tokenPath));
+
+        const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+        oAuth2Client.setCredentials(token);
+
+        log.info('✅ Auth object created');
+        return oAuth2Client;
+    } catch (err) {
+        log.error('❌ Erreur dans getAuth :', err.message);
+        throw err; // Important de relancer l'erreur pour qu’elle soit catchée plus haut
+    }
 };
+
 
 async function createWindow() {
     const { screen } = require('electron');
@@ -123,6 +152,7 @@ async function createWindow() {
         vibrancy: 'sidebar', // ou 'medium-light' / 'ultra-dark' selon ton style
         visualEffectState: 'active',
         alwaysOnTop: true,
+        // icon: path.join(__dirname, 'icon.ico'),
         webPreferences: {
             preload: path.join(app.getAppPath(), "preload.js"),
             contextIsolation: true,
@@ -146,7 +176,7 @@ async function createWindow() {
     });
 
     powerMonitor.on('lock-screen', () => {
-        console.log('🔒 Écran verrouillé');
+        // log.info('🔒 Écran verrouillé');
         mainWindow.webContents.send('stop-all-chronos');
     });
 
@@ -184,7 +214,7 @@ ipcMain.on('append-to-sheet', async (event, { spreadsheetId, sheetName, values }
             },
         });
 
-        console.log('✅ Données ajoutées avec succès');
+        // log.info('✅ Données ajoutées avec succès');
         event.reply('append-to-sheet-success');
     } catch (err) {
         console.error('❌ Erreur ajout Google Sheet:', err);
@@ -197,15 +227,22 @@ ipcMain.on('open-external-url', (event, url) => {
 
 async function checkProjectSheetHeaders(project) {
     try {
+        log.info('get AUth');
         const auth = getAuth();
+        log.info('Auth getted');
+        log.info('Auth getted ' + JSON.stringify(auth));
+
         const sheets = google.sheets({ version: 'v4', auth });
+        log.info('sheets request');
 
         const res = await sheets.spreadsheets.values.get({
             spreadsheetId: project.spreadsheetId,
             range: `${project.sheetName}!A1:F1`,
         });
 
+        log.info('Headers vérifiés pour', project.nomProjet);
         const headers = res.data.values?.[0] || [];
+        log.info('Headers trouvés:', headers);
         const expected = [
             "Objet",
             "Tracker",
@@ -220,13 +257,14 @@ async function checkProjectSheetHeaders(project) {
         return { ...project, hasHeaderIssue: !isValid };
     } catch (e) {
         console.warn(`⚠️ Erreur sur ${project.nomProjet} :`, e.message);
+        log.error(`❌ Erreur checkProjectSheetHeaders pour ${project.nomProjet} :`, e.message);
         return { ...project, hasHeaderIssue: true };
     }
 }
 
 
 async function loadProjectsWithHeaderChecks() {
-    const raw = fs.readFileSync('./src/public/projet.json', 'utf8');
+    const raw = fs.readFileSync(path.join(__dirname, 'projet.json'), 'utf8');
     const projects = JSON.parse(raw);
 
     const checked = [];

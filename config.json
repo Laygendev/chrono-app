@@ -1,0 +1,6 @@
+{
+    "CLIENT_ID": "856756852384-u3vm7crhbg2ud1aivt9bbb79gubt8bjh.apps.googleusercontent.com",
+    "CLIENT_SECRET": "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",
+    "ELECTRON_START_URL": "http://localhost:3000",
+    "GIT_SCAN_DEPTH": 2
+}
