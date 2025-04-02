@@ -21,6 +21,7 @@ log.info('App started');
 let cachedRepos = [];
 let cachedCommits = [];
 let checkedProjectList = [];
+let allProjectList = [];
 
 // app.setAppUserModelId(app.name);
 
@@ -110,7 +111,6 @@ let mainWindow; // ✅ définie en haut
 // auth Google (tu dois avoir credentials.json + token.json)
 const getAuth = () => {
     try {
-        log.info('🔐 getAuth called');
 
         const client_id = config.CLIENT_ID;
         const client_secret = config.CLIENT_SECRET;
@@ -130,7 +130,6 @@ const getAuth = () => {
         const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
         oAuth2Client.setCredentials(token);
 
-        log.info('✅ Auth object created');
         return oAuth2Client;
     } catch (err) {
         log.error('❌ Erreur dans getAuth :', err.message);
@@ -172,13 +171,24 @@ async function createWindow() {
 
     powerMonitor.on('suspend', () => {
         // Envoie un signal au renderer pour stopper tous les chronos
-        mainWindow.webContents.send('stop-all-chronos');
+        if (mainWindow && mainWindow.webContents) {
+            mainWindow.webContents.send('stop-all-chronos');
+        }
     });
 
     powerMonitor.on('lock-screen', () => {
         // log.info('🔒 Écran verrouillé');
-        mainWindow.webContents.send('stop-all-chronos');
+        if (mainWindow && mainWindow.webContents) {
+            mainWindow.webContents.send('stop-all-chronos');
+        }
     });
+
+    powerMonitor.on('unlock-screen', () => {
+        log.info('🔓 Écran déverrouillé');
+        if (mainWindow && mainWindow.webContents) {
+          mainWindow.webContents.send('notify-unlock-reminder');
+        }
+      });
 
     setupGitCommitListener();
 
@@ -227,22 +237,14 @@ ipcMain.on('open-external-url', (event, url) => {
 
 async function checkProjectSheetHeaders(project) {
     try {
-        log.info('get AUth');
         const auth = getAuth();
-        log.info('Auth getted');
-        log.info('Auth getted ' + JSON.stringify(auth));
-
         const sheets = google.sheets({ version: 'v4', auth });
-        log.info('sheets request');
-
         const res = await sheets.spreadsheets.values.get({
             spreadsheetId: project.spreadsheetId,
             range: `${project.sheetName}!A1:F1`,
         });
 
-        log.info('Headers vérifiés pour', project.nomProjet);
         const headers = res.data.values?.[0] || [];
-        log.info('Headers trouvés:', headers);
         const expected = [
             "Objet",
             "Tracker",
@@ -262,29 +264,39 @@ async function checkProjectSheetHeaders(project) {
     }
 }
 
-
 async function loadProjectsWithHeaderChecks() {
     const raw = fs.readFileSync(path.join(__dirname, 'projet.json'), 'utf8');
     const projects = JSON.parse(raw);
+
+    // Affiche tous les projets dans la liste avec un état "en cours"
+    projects.forEach((project) => {
+        allProjectList.push({ ...project, isLoading: true, hasHeaderIssue: false });
+    });
 
     const checked = [];
 
     for (let index = 0; index < projects.length; index++) {
         const project = projects[index];
-        mainWindow?.webContents.send("project-checking", {
-            current: index + 1,
-            total: projects.length,
-            name: project.nomProjet
-        });
 
         const result = await checkProjectSheetHeaders(project);
         checked.push(result);
+
+        // Ensuite on envoie le résultat final
+        mainWindow?.webContents.send("project-status", {
+            ...result,
+            isLoading: false
+        });
+
         await delay(200);
     }
 
     checkedProjectList = checked;
     mainWindow.webContents.send('app-loaded');
 }
+
+ipcMain.handle('get-projects', () => {
+    return allProjectList;
+});
 
 ipcMain.handle('get-checked-projects', () => {
     return checkedProjectList;

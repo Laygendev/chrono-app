@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { X, Check, FolderIcon, ClockIcon, CheckSquare } from 'lucide-react';
+import ProjectDropdown from './ProjectDropdown';
+import Logger from 'electron-log';
 
-const TimerModal = ({ onClose, time, onSuccess }) => {
+const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList }) => {
   const [editedTime, setEditedTime] = useState(time);
   const [message, setMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState('');
-  const [projectList, setProjectList] = useState([]);
   const [commits, setCommits] = useState([]);
   const [selectedCommit, setSelectedCommit] = useState("");
   const [selectedCommitUrl, setSelectedCommitUrl] = useState("");
@@ -15,10 +16,6 @@ const TimerModal = ({ onClose, time, onSuccess }) => {
     window.electron.getTodaysCommits().then((commits) => {
       setCommits(commits);
     });
-
-    window.electron.ipcRenderer.invoke('get-checked-projects')
-      .then((data) => setProjectList(data))
-      .catch((err) => console.error('Erreur de chargement projets avec vérification', err));
 
   }, []);
 
@@ -66,7 +63,6 @@ const TimerModal = ({ onClose, time, onSuccess }) => {
       setSelectedCommitUrl(issueUrl); // stocke le lien complet
       setMessage(message);   // remplit le champ texte
     } else {
-      setSelectedCommit("");
       setSelectedCommitUrl("");
     }
   };
@@ -87,21 +83,11 @@ const TimerModal = ({ onClose, time, onSuccess }) => {
 
         <div className="mb-3 mt-4 flex gap-4">
           {/* Select avec icône */}
-          <div className="relative w-full">
-            <FolderIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
-            <select
-              className="w-full pl-10 p-2 border border-gray-300 rounded"
-              value={selectedFile}
-              onChange={(e) => setSelectedFile(e.target.value)}
-            >
-              <option value="">(aucun)</option>
-              {projectList.map((project, index) => (
-                <option key={index} value={project.nomProjet} disabled={project.hasHeaderIssue}>
-                  {project.hasHeaderIssue ? '⚠️ ' : ''}{project.nomProjet}
-                </option>
-              ))}
-            </select>
-          </div>
+          <ProjectDropdown
+            projects={projectList}
+            selectedFile={selectedFile}
+            setSelectedFile={setSelectedFile}
+          />
 
           {/* Input avec icône */}
           <div className="relative w-full">

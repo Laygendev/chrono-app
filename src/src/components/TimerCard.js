@@ -4,7 +4,7 @@ import TimerModal from './TimerModal';
 import { Play, Pause, StopCircle, Trash } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const TimerCard = ({ id, onDelete, onRunningChange, isActive, onActivate, color }) => {
+const TimerCard = ({ id, onDelete, onRunningChange, isActive, onActivate, color, projectList, setProjectList }) => {
   const { time, start, pause, reset } = useTimer();
   const [showModal, setShowModal] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
@@ -21,6 +21,7 @@ const TimerCard = ({ id, onDelete, onRunningChange, isActive, onActivate, color 
   };
 
   const handleStop = (hasToShowModal = false) => {
+    console.log('stop chrono');
     pause();
     setIsRunning(false);
     onRunningChange?.(id, false);
@@ -54,14 +55,15 @@ const TimerCard = ({ id, onDelete, onRunningChange, isActive, onActivate, color 
   }, [isRunning]);
 
   useEffect(() => {
-    const handleStop = () => handleStop(false);
+    const handleIpcStop = () => handleStop(false); // ✅ évite la récursion
   
-    window.electron.ipcRenderer.on('stop-all-chronos', handleStop);
+    window.electron.ipcRenderer.on('stop-all-chronos', handleIpcStop);
     return () => {
-      window.electron.ipcRenderer.removeListener('stop-all-chronos', handleStop);
+      window.electron.ipcRenderer.removeListener('stop-all-chronos', handleIpcStop);
       pause();
     };
   }, []);
+  
 
   useEffect(() => {
     if (isActive) {
@@ -93,7 +95,8 @@ const TimerCard = ({ id, onDelete, onRunningChange, isActive, onActivate, color 
             <Trash size={18} />
           </button>
         </div>
-        {showModal && <TimerModal onSuccess={onSuccess} onClose={() => setShowModal(false)} time={time} />}
+        {showModal && <TimerModal onSuccess={onSuccess} onClose={() => setShowModal(false)} time={time} projectList={projectList}
+          setProjectList={setProjectList} />}
       </div>
     </motion.div>
   );

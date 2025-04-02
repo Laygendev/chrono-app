@@ -9,5 +9,6 @@ contextBridge.exposeInMainWorld('electron', {
     invoke: (...args) => ipcRenderer.invoke(...args)
   },
   getTodaysCommits: () => ipcRenderer.invoke('get-todays-commits'),
-  getProjects: () => ipcRenderer.invoke('get-projects-with-checks')
+  getProjectsWithChecks: () => ipcRenderer.invoke('get-projects-with-checks'),
+  getProjects: () => ipcRenderer.invoke('get-projects')
 });
