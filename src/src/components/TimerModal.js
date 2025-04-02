@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, FolderIcon, ClockIcon, CheckSquare, Plus, Minus, CircleDashed } from 'lucide-react';
+import { X, Check, FolderIcon, ClockIcon, CheckSquare, Plus, Minus, CircleDashed, RefreshCcw } from 'lucide-react';
 import ProjectDropdown from './ProjectDropdown';
 import Logger from 'electron-log';
 import { motion, AnimatePresence } from 'framer-motion';
+import CommitDropdown from './CommitDropdown';
 
 const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList }) => {
   const [editedTime, setEditedTime] = useState(time);
@@ -14,6 +15,8 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList }) =
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [showAdjustBox, setShowAdjustBox] = useState(false);
+  const [isRefreshingCommits, setIsRefreshingCommits] = useState(false);
+
 
   const adjustBoxRef = React.useRef(null);
   let mouseLeaveTimeout = null;
@@ -79,15 +82,22 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList }) =
     setEditedTime(`${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}:00`);
   };
 
+  const refreshCommits = async () => {
+    setIsRefreshingCommits(true);
+    const newCommits = await window.electron.getTodaysCommits();
+    setCommits(newCommits);
+    setTimeout(() => setIsRefreshingCommits(false), 800); // petite pause pour l’animation
+  };
+
   useEffect(() => {
     const fetchCommits = async () => {
       const newCommits = await window.electron.getTodaysCommits();
       setCommits(newCommits);
     };
-  
+
     fetchCommits(); // appel initial
     const intervalId = setInterval(fetchCommits, 60000); // toutes les minutes
-  
+
     return () => clearInterval(intervalId); // nettoyage
   }, []);
 
@@ -250,26 +260,15 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList }) =
         </div>
 
         <div className="mb-4">
-          <div className="relative w-full">
-            <CheckSquare className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
-            <select
-              id="git-commits"
-              className="w-full pl-10 p-2 border border-gray-300 rounded"
-              value={selectedCommit}
-              onChange={(e) => handleSelectCommit(e.target.value)}
-            >
-              <option value="">(aucun commit sélectionné)</option>
-              {commits.length > 0 ? (
-                commits.map((commit, index) => (
-                  <option key={index} value={commit}>
-                    {commit}
-                  </option>
-                ))
-              ) : (
-                <option disabled>Aucun commit aujourd’hui</option>
-              )}
-            </select>
-          </div>
+          <CommitDropdown
+            commits={commits}
+            selectedCommit={selectedCommit}
+            setSelectedCommit={setSelectedCommit}
+            setSelectedCommitUrl={setSelectedCommitUrl}
+            setMessage={setMessage}
+            refreshCommits={refreshCommits}
+            isRefreshing={isRefreshingCommits}
+          />
         </div>
 
         <div className="flex justify-end gap-2">
