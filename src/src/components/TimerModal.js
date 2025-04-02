@@ -263,6 +263,7 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList }) =
           <CommitDropdown
             commits={commits}
             selectedCommit={selectedCommit}
+            onSelectCommit={handleSelectCommit}
             setSelectedCommit={setSelectedCommit}
             setSelectedCommitUrl={setSelectedCommitUrl}
             setMessage={setMessage}
