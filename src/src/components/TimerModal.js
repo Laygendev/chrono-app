@@ -266,7 +266,7 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList }) =
             setSelectedCommit={setSelectedCommit}
             setSelectedCommitUrl={setSelectedCommitUrl}
             setMessage={setMessage}
-            refreshCommits={refreshCommits}
+            onRefreshCommits={refreshCommits}
             isRefreshing={isRefreshingCommits}
           />
         </div>
