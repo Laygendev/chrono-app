@@ -153,9 +153,9 @@ const App = () => {
         body: "Tu viens de déverrouiller l’écran.",
       });
     };
-  
+
     window.electron?.ipcRenderer?.on("notify-unlock-reminder", handleReminder);
-  
+
     return () => {
       window.electron?.ipcRenderer?.removeListener("notify-unlock-reminder", handleReminder);
     };
@@ -196,7 +196,11 @@ const App = () => {
       const anyRunning = Object.values(activeTimers).some(Boolean);
       if (anyRunning) {
         new Notification('⏱️ Chrono actif', {
-          body: 'Un chrono est toujours en cours.',
+          body: 'Un chrono est en cours.',
+        });
+      } else {
+        new Notification('⛔ Aucun chrono actif', {
+          body: 'Attention ! Aucun chrono n’est actuellement en cours.',
         });
       }
     }, 10 * 60 * 1000); // 10 minutes
