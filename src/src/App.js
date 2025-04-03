@@ -1,11 +1,10 @@
 // 📁 src/App.js (séparation fond draggable / contenu UI pour éviter le bug d'opacity)
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import TimerCard from './components/TimerCard';
 import './App.css';
 import { Plus, X } from 'lucide-react';
 import { AnimatePresence, motion, LayoutGroup } from 'framer-motion';
 import AnimatedBackground from './components/AnimatedBackground';
-import StopBox from './components/StopBox';
 
 const COLORS = [
   'bg-pink-100',
@@ -20,7 +19,7 @@ const COLORS = [
 ];
 
 const App = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [timers, setTimers] = useState([crypto.randomUUID()]);
   const [activeTimers, setActiveTimers] = useState({});
   const [activeTimerId, setActiveTimerId] = useState(null);
@@ -72,41 +71,6 @@ const App = () => {
   ];
 
   const [motivationText, setMotivationText] = useState(positiveMessages[0]);
-
-  const [stopBoxAnchor, setStopBoxAnchor] = useState(null);
-  const stopBoxRef = useRef(null);
-  const dragZoneRef = useRef(null);
-
-  useEffect(() => {
-    const dragZone = dragZoneRef.current;
-  
-    if (!dragZone) return;
-  
-    if (stopBoxAnchor) {
-      dragZone.classList.remove('drag');
-      dragZone.style.webkitAppRegion = 'no-drag';
-    } else {
-      dragZone.classList.add('drag');
-      dragZone.style.webkitAppRegion = 'drag';
-    }
-  }, [stopBoxAnchor]);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (
-        stopBoxRef.current &&
-        !stopBoxRef.current.contains(e.target)
-      ) {
-        setStopBoxAnchor(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-  
-
 
   useEffect(() => {
     let remainingMessages = [...positiveMessages];
@@ -259,7 +223,7 @@ const App = () => {
       {!isLoading && (
         <div className="min-h-screen relative text-black">
           {/* Zone draggable invisible derrière tout */}
-          <div className="absolute inset-0 -z-10 drag overflow-hidden" ref={dragZoneRef}>
+          <div className="absolute inset-0 -z-10 drag overflow-hidden">
             {Object.values(activeTimers).some(Boolean) && <AnimatedBackground />}
           </div>
 
@@ -307,9 +271,7 @@ const App = () => {
                           color={colorClass}
                           projectList={projectList}
                           setProjectList={setProjectList}
-                          onOpenStopBox={(rect) => setStopBoxAnchor(rect)}
                         />
-
                       </motion.div>
                     );
                   })}
@@ -326,10 +288,6 @@ const App = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {stopBoxAnchor && (
-          <StopBox anchorRect={stopBoxAnchor} ref={stopBoxRef} onClose={() => setStopBoxAnchor(null)} />
       )}
     </>
   );

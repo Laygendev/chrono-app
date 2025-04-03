@@ -1,41 +1,57 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTimer } from '../hooks/useTimer';
 import TimerModal from './TimerModal';
 import { Play, Pause, StopCircle, Trash } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const TimerCard = ({ id, onDelete, onRunningChange, isActive, onActivate, color, projectList, setProjectList, onOpenStopBox }) => {
+const TimerCard = ({ id, onDelete, onRunningChange, isActive, onActivate, color, projectList, setProjectList }) => {
   const { time, start, pause, reset } = useTimer();
-  const [showModal, setShowModal] = useState(false);
+  const [modalState, setModalState] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
-  const stopButtonRef = useRef(null);
 
   const handleToggle = () => {
     if (isRunning) {
       pause();
       setIsRunning(false);
     } else {
-      onActivate();
+      onActivate(); // 🔥 Notifie App.js qu’on démarre ce chrono
       start();
       setIsRunning(true);
     }
   };
 
-  const handleStop = (e) => {
+  let pressTimer;
+
+  const handleStopPress = () => {
+    pressTimer = setTimeout(() => {
+      // Appui long : ouvrir étape 1
+      handleStop(true);
+    }, 300);
+  };
+
+  const handleStopRelease = () => {
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      // Appui court : ouvrir étape 2 avec catégorie TMA
+      setModalState({ step: 2, selectedCategory: 'Maintenance' });
+      handleStop(); // sans modal immédiate
+    }
+  };
+
+  const handleStop = (hasToShowModal = false) => {
     pause();
     setIsRunning(false);
     onRunningChange?.(id, false);
 
-    if (stopButtonRef.current) {
-      const rect = stopButtonRef.current.getBoundingClientRect();
-      onOpenStopBox?.(rect);
+    if (hasToShowModal) {
+      setModalState(true);
     }
   };
 
   const handleDelete = () => {
     const confirmDelete = window.confirm('Êtes-vous sûr de vouloir supprimer ce chrono ?');
     if (confirmDelete) {
-      onDelete(id);
+      onDelete(id); // Appel de la fonction de suppression passée en prop
     }
   };
 
@@ -56,20 +72,22 @@ const TimerCard = ({ id, onDelete, onRunningChange, isActive, onActivate, color,
   }, [isRunning]);
 
   useEffect(() => {
-    const handleStopIpc = () => handleStop();
-    window.electron.ipcRenderer.on('stop-all-chronos', handleStopIpc);
+    const handleIpcStop = () => handleStop(false); // ✅ évite la récursion
+
+    window.electron.ipcRenderer.on('stop-all-chronos', handleIpcStop);
     return () => {
-      window.electron.ipcRenderer.removeListener('stop-all-chronos', handleStopIpc);
+      window.electron.ipcRenderer.removeListener('stop-all-chronos', handleIpcStop);
       pause();
     };
   }, []);
 
+
   useEffect(() => {
     if (isActive) {
-      start();
-      onRunningChange(id, true);
+      start(); // 🚀 démarrage auto quand activé
+      onRunningChange(id, true); // si tu veux suivre le statut global
     } else {
-      pause();
+      pause(); // sinon on stoppe le chrono
       onRunningChange(id, false);
     }
   }, [isActive]);
@@ -87,23 +105,27 @@ const TimerCard = ({ id, onDelete, onRunningChange, isActive, onActivate, color,
             {isRunning ? <Pause size={18} /> : <Play size={18} />}
           </button>
           <button
-            ref={stopButtonRef}
-            onClick={handleStop}
+            onMouseDown={handleStopPress}
+            onMouseUp={handleStopRelease}
+            onMouseLeave={() => clearTimeout(pressTimer)}
             className="text-gray-700 hover:text-red-600"
           >
             <StopCircle size={18} />
           </button>
+          {/* Bouton de suppression avec icône */}
           <button onClick={handleDelete} className="text-gray-700 hover:text-red-600">
             <Trash size={18} />
           </button>
         </div>
-        {showModal && (
+        {modalState && (
           <TimerModal
             onSuccess={onSuccess}
-            onClose={() => setShowModal(false)}
+            onClose={() => setModalState(null)}
             time={time}
             projectList={projectList}
             setProjectList={setProjectList}
+            forcedStep={modalState.step}
+            forcedCategory={modalState.selectedCategory}
           />
         )}
       </div>
