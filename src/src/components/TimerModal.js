@@ -46,22 +46,22 @@ function useTooltip() {
 }
 
 const categories = [
-  { label: 'Maintenance', Icon: Settings, slug: 'maintenance', bg: 'bg-gray-100 hover:bg-gray-200' },
-  { label: 'Développement', Icon: FileCode2, slug: 'developpement', bg: 'bg-blue-100 hover:bg-blue-200' },
-  { label: 'Conception', Icon: FolderIcon, slug: 'conception', bg: 'bg-purple-100 hover:bg-purple-200' },
-  { label: "Commercial / Appel d'offre", Icon: Briefcase, slug: 'commercial-appel-offre', bg: 'bg-yellow-100 hover:bg-yellow-200' },
-  { label: 'Intégration', Icon: Layout, slug: 'integration', bg: 'bg-orange-100 hover:bg-orange-200' },
-  { label: 'Création graphique', Icon: Paintbrush2, slug: 'creation-graphique', bg: 'bg-pink-100 hover:bg-pink-200' },
-  { label: 'Déclinaison graphique', Icon: Paintbrush2, slug: 'declinaison-graphique', bg: 'bg-pink-50 hover:bg-pink-100' },
-  { label: 'Recette', Icon: ListChecks, slug: 'recette', bg: 'bg-green-100 hover:bg-green-200' },
-  { label: 'Web Marketing', Icon: GlobeIcon, slug: 'web-marketing', bg: 'bg-emerald-100 hover:bg-emerald-200' },
-  { label: 'Suivi de projet', Icon: Users, slug: 'suivi-de-projet', bg: 'bg-indigo-100 hover:bg-indigo-200' },
-  { label: 'Community management', Icon: Users, slug: 'community-management', bg: 'bg-cyan-100 hover:bg-cyan-200' },
-  { label: 'Déplacement / Trajet', Icon: MapPin, slug: 'deplacement-trajet', bg: 'bg-red-100 hover:bg-red-200' },
-  { label: 'Réunion', Icon: CheckSquare, slug: 'reunion', bg: 'bg-lime-100 hover:bg-lime-200' },
-  { label: 'Veille', Icon: Eye, slug: 'veille', bg: 'bg-fuchsia-100 hover:bg-fuchsia-200' },
-  { label: 'SEO', Icon: Search, slug: 'seo', bg: 'bg-amber-100 hover:bg-amber-200' },
-  { label: 'Wireframe', Icon: FileText, slug: 'wireframe', bg: 'bg-sky-100 hover:bg-sky-200' }
+  { label: 'Maintenance', Icon: Settings, slug: 'maintenance', bg: 'bg-gray-100', hb: 'hover:bg-gray-200' },
+  { label: 'Développement', Icon: FileCode2, slug: 'developpement', bg: 'bg-blue-100', hb: 'hover:bg-blue-200' },
+  { label: 'Conception', Icon: FolderIcon, slug: 'conception', bg: 'bg-purple-100', hb: 'hover:bg-purple-200' },
+  { label: "Commercial / Appel d'offre", Icon: Briefcase, slug: 'commercial-appel-offre', bg: 'bg-yellow-100', hb: 'hover:bg-yellow-200' },
+  { label: 'Intégration', Icon: Layout, slug: 'integration', bg: 'bg-orange-100', hb: 'hover:bg-orange-200' },
+  { label: 'Création graphique', Icon: Paintbrush2, slug: 'creation-graphique', bg: 'bg-pink-100', hb: 'hover:bg-pink-200' },
+  { label: 'Déclinaison graphique', Icon: Paintbrush2, slug: 'declinaison-graphique', bg: 'bg-pink-50', hb: 'hover:bg-pink-100' },
+  { label: 'Recette', Icon: ListChecks, slug: 'recette', bg: 'bg-green-100', hb: 'hover:bg-green-200' },
+  { label: 'Web Marketing', Icon: GlobeIcon, slug: 'web-marketing', bg: 'bg-emerald-100', hb: 'hover:bg-emerald-200' },
+  { label: 'Suivi de projet', Icon: Users, slug: 'suivi-de-projet', bg: 'bg-indigo-100', hb: 'hover:bg-indigo-200' },
+  { label: 'Community management', Icon: Users, slug: 'community-management', bg: 'bg-cyan-100', hb: 'hover:bg-cyan-200' },
+  { label: 'Déplacement / Trajet', Icon: MapPin, slug: 'deplacement-trajet', bg: 'bg-red-100', hb: 'hover:bg-red-200' },
+  { label: 'Réunion', Icon: CheckSquare, slug: 'reunion', bg: 'bg-lime-100', hb: 'hover:bg-lime-200' },
+  { label: 'Veille', Icon: Eye, slug: 'veille', bg: 'bg-fuchsia-100', hb: 'hover:bg-fuchsia-200' },
+  { label: 'SEO', Icon: Search, slug: 'seo', bg: 'bg-amber-100', hb: 'hover:bg-amber-200' },
+  { label: 'Wireframe', Icon: FileText, slug: 'wireframe', bg: 'bg-sky-100', hb: 'hover:bg-sky-200' }
 ];
 
 const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, forcedStep, forcedCategory }) => {
@@ -228,7 +228,7 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, for
           <motion.div layout>
             <div className="flex flex-col items-center mt-2 justify-center">
               <div className="grid grid-cols-3 gap-3 mb-2 overflow-y-auto max-h-52 px-1">
-                {categories.map(({ label, Icon, bg }, i) => (
+                {categories.map(({ label, Icon, bg, hb }, i) => (
                   <motion.div
                     key={label}
                     className="flex flex-col items-center justify-start"
@@ -241,7 +241,8 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, for
                         setSelectedCategory(label);
                         setStep(2);
                       }}
-                      className={`w-14 h-14 ${bg} rounded-full flex items-center justify-center shadow-sm transition`}
+                      disabled={label !== 'Maintenance'}
+                      className={`w-14 h-14 ${bg} rounded-full flex items-center justify-center shadow-sm transition ${label !== 'Maintenance' ? 'opacity-20' : `${hb}`}`}
                     >
                       <Icon className="w-5 h-5" />
                     </button>

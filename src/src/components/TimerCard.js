@@ -26,7 +26,7 @@ const TimerCard = ({ id, onDelete, onRunningChange, isActive, onActivate, color,
     pressTimer = setTimeout(() => {
       // Appui long : ouvrir étape 1
       handleStop(true);
-    }, 300);
+    }, 500);
   };
 
   const handleStopRelease = () => {
