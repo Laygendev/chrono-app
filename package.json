@@ -35,6 +35,7 @@
       "buildResources": "assets"
     },
     "mac": {
+      "icon": "icons/mac_icon.icns",
       "target": [
         "dmg",
         "zip"

@@ -201,12 +201,17 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, for
 
               {selectedCategory && (() => {
                 const cat = categories.find(c => c.label === selectedCategory);
-                return cat ? <cat.Icon className="w-4 h-4 text-blue-700" title={cat.label} /> : null;
+                return cat ? <cat.Icon className={`w-4 h-4 rounded-full`} title={cat.label} /> : null;
               })()}
             </>
           )}
 
-          <h2 className="font-medium text-center">Catégorie</h2>
+          {selectedCategory && step === 2 && (() => {
+            const cat = categories.find(c => c.label === selectedCategory);
+            return <h2 className="font-medium text-center">{cat.label}</h2>
+          })()}
+
+          {step === 1 && <h2 className="font-medium text-center">Catégorie</h2>}
 
           <div className="ml-auto items-center flex">
             <button
@@ -222,7 +227,7 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, for
         {step === 1 && (
           <motion.div layout>
             <div className="flex flex-col items-center mt-2 justify-center">
-              <div className="grid grid-cols-3 gap-3 mb-2 overflow-y-auto max-h-36 px-1">
+              <div className="grid grid-cols-3 gap-3 mb-2 overflow-y-auto max-h-52 px-1">
                 {categories.map(({ label, Icon, bg }, i) => (
                   <motion.div
                     key={label}
@@ -238,7 +243,7 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, for
                       }}
                       className={`w-14 h-14 ${bg} rounded-full flex items-center justify-center shadow-sm transition`}
                     >
-                      <Icon className="w-5 h-5 text-blue-700" />
+                      <Icon className="w-5 h-5" />
                     </button>
                     <span className="text-xs text-gray-700 mt-1 text-center leading-tight max-w-[80px] truncate">
                       {label}

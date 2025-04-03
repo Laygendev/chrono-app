@@ -2,9 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import TimerCard from './components/TimerCard';
 import './App.css';
-import { Plus, X } from 'lucide-react';
+import { HelpCircleIcon, Plus, X } from 'lucide-react';
 import { AnimatePresence, motion, LayoutGroup } from 'framer-motion';
 import AnimatedBackground from './components/AnimatedBackground';
+import HelpModal from './components/HelpModal';
 
 const COLORS = [
   'bg-pink-100',
@@ -19,13 +20,16 @@ const COLORS = [
 ];
 
 const App = () => {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [timers, setTimers] = useState([crypto.randomUUID()]);
   const [activeTimers, setActiveTimers] = useState({});
   const [activeTimerId, setActiveTimerId] = useState(null);
   const [checkingProject, setCheckingProject] = useState(null);
   const [progress, setProgress] = useState({ current: 0, total: 1 }); // éviter division par 0
   const [projectList, setProjectList] = useState([]);
+  const [footerMessage, setFooterMessage] = useState('');
+  const [showHelp, setShowHelp] = useState(false);
+
 
   const positiveMessages = [
     "Respire… ou alors mange du chocolat, ça marche aussi.",
@@ -287,6 +291,32 @@ const App = () => {
               </button>
             </div>
           </div>
+
+          <div className="absolute bottom-2 right-2 text-xs text-gray-400 flex items-center gap-1">
+            v{window?.appVersion || "1.0.0-202504031348"}
+
+            <button onClick={() => setShowHelp(true)} className="text-sm hover:underline">
+              <HelpCircleIcon size={16} />
+            </button>
+
+          </div>
+
+          {/* Messages d’état en bas à droite */}
+          <AnimatePresence>
+            {footerMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.3 }}
+                className="absolute bottom-0 left-2 text-xs text-gray-400 max-h-5 max-w-60"
+              >
+                {footerMessage}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
         </div>
       )}
     </>
