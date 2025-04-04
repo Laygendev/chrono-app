@@ -215,7 +215,7 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, pro
     if (selectedCategory === 'Maintenance') {
       window.electron.ipcRenderer.once('append-to-sheet-success', () => {
         const url = `https://docs.google.com/spreadsheets/d/${selected.spreadsheetId}`;
-        new Notification('Temps ajouté', { body: `🕒 ${editedTime} ajouté à « ${selected.name} »` })
+        new Notification('Temps ajouté dans le dashboard et dans le fichier de maintenance', { body: `🕒 ${editedTime} ajouté à « ${selected.name} »` })
           .onclick = () => window.electron.ipcRenderer.send('open-external-url', url);
         setIsSubmitting(false);
         if (onSuccess) onSuccess();
@@ -292,7 +292,9 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, pro
       return;
     }
 
-    new Notification('Temps ajouté dans le dashboard', { body: `🕒 ${editedTime} ajouté à « ${selected.name} »` })
+    if (selectedCategory !== 'Maintenance') {
+      new Notification('Temps ajouté dans le dashboard', { body: `🕒 ${editedTime} ajouté à « ${selected.name} »` })
+    }
     setIsSubmitting(false);
     if (onSuccess) onSuccess();
     onClose();

@@ -255,7 +255,7 @@ const App = () => {
             console.error(`❌ Erreur lors de la vérification des headers pour ${project.name}:`, error);
             // isValid reste à false => hasHeaderIssue = true
           }
-
+          
           const updatedProject = {
             ...project,
             isLoading: false,
