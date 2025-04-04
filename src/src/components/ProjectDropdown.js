@@ -25,7 +25,7 @@ const ProjectDropdown = ({ projects, selectedFile, setSelectedFile }) => {
     };
   }, []);
 
-  const filteredProjects = projects.filter(p => p.nomProjet.toLowerCase().includes(search.toLowerCase()));
+  const filteredProjects = projects.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="relative w-full" ref={buttonRef}>
@@ -33,7 +33,7 @@ const ProjectDropdown = ({ projects, selectedFile, setSelectedFile }) => {
         className="w-full pr-4 pl-2 py-2 border border-gray-300 rounded text-left text-black flex items-center justify-between bg-white hover:bg-gray-100"
         onClick={() => setOpen(!open)}
       >
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-2 truncate max-w-[92px]">
           <FolderIcon className="w-4 h-4 text-gray-500" />
           {selectedFile || 'Projet'}
         </span>
@@ -69,7 +69,7 @@ const ProjectDropdown = ({ projects, selectedFile, setSelectedFile }) => {
                   key={idx}
                   onClick={() => {
                     if (!isDisabled) {
-                      setSelectedFile(project.nomProjet);
+                      setSelectedFile(project.name);
                       setOpen(false);
                     }
                   }}
@@ -82,7 +82,7 @@ const ProjectDropdown = ({ projects, selectedFile, setSelectedFile }) => {
                   ) : (
                     <CheckCircle className="text-green-500 w-4 h-4" />
                   )}
-                  <span>{project.nomProjet}</span>
+                  <span>{project.name}</span>
                 </div>
               );
             })

@@ -2,10 +2,12 @@
 import React, { useEffect, useState } from 'react';
 import TimerCard from './components/TimerCard';
 import './App.css';
-import { HelpCircleIcon, Plus, X } from 'lucide-react';
+import { HelpCircleIcon, Plus, UserIcon, X } from 'lucide-react';
 import { AnimatePresence, motion, LayoutGroup } from 'framer-motion';
 import AnimatedBackground from './components/AnimatedBackground';
 import HelpModal from './components/HelpModal';
+import LoginModal from './components/LoginModal';
+import { UserContext } from './contexts/UserContext';
 
 const COLORS = [
   'bg-pink-100',
@@ -20,16 +22,17 @@ const COLORS = [
 ];
 
 const App = () => {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [timers, setTimers] = useState([crypto.randomUUID()]);
   const [activeTimers, setActiveTimers] = useState({});
   const [activeTimerId, setActiveTimerId] = useState(null);
   const [checkingProject, setCheckingProject] = useState(null);
   const [progress, setProgress] = useState({ current: 0, total: 1 }); // éviter division par 0
   const [projectList, setProjectList] = useState([]);
+  const [projectListTMA, setProjectListTMA] = useState([]);
   const [footerMessage, setFooterMessage] = useState('');
   const [showHelp, setShowHelp] = useState(false);
-
+  const [showLogin, setShowLogin] = useState(false);
 
   const positiveMessages = [
     "Respire… ou alors mange du chocolat, ça marche aussi.",
@@ -76,6 +79,73 @@ const App = () => {
 
   const [motivationText, setMotivationText] = useState(positiveMessages[0]);
 
+  const [userData, setUserData] = useState(null);
+
+  const [totalDayTime, setTotalDayTime] = useState('00:00:00');
+
+  const fetchDayTotal = async () => {
+    try {
+      if (userData && userData.token) {
+        const today = new Date().toISOString().split('T')[0];
+        const res = await fetch(`https://api.lajungle.net/task/mine/${today}`, {
+          headers: {
+            Authorization: `Bearer ${userData.token}`
+          }
+        });
+
+        if (!res.ok) throw new Error('Échec de récupération des tâches');
+        const tasks = await res.json();
+
+        const totalSeconds = tasks.reduce((acc, task) => {
+          const [h, m, s] = task.duration.split(':').map(Number);
+          return acc + h * 3600 + m * 60 + s;
+        }, 0);
+
+        const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+        const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+        const seconds = String(totalSeconds % 60).padStart(2, '0');
+
+        setTotalDayTime(`${hours}:${minutes}:${seconds}`);
+      }
+    } catch (err) {
+      console.error('Erreur fetch total durée :', err);
+      setTotalDayTime('--:--:--');
+    }
+  };
+
+  useEffect(() => {
+    if (!userData?.token) return;
+
+    fetchDayTotal(); // première exécution immédiate
+    const interval = setInterval(fetchDayTotal, 60 * 1000); // toutes les minutes
+
+    return () => clearInterval(interval);
+  }, [userData]);
+
+  const onSuccessDashboard = () => {
+    fetchDayTotal();
+  }
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const user = await window.electron.store.get('userData');
+      if (user) {
+        setUserData(user);
+        setShowLogin(false);
+      }
+    };
+
+    fetchUser(); // 👈 on appelle la fonction async ici
+  }, []);
+
+  const loginSuccess = async () => {
+    const user = await window.electron.store.get('userData');
+    if (user) {
+      setUserData(user);
+      setShowLogin(false);
+    }
+  };
+
   useEffect(() => {
     let remainingMessages = [...positiveMessages];
     const usedMessages = [];
@@ -106,46 +176,60 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    // ⚡ Charge l'état global si jamais l'event est passé avant l'ouverture de la modale
-    window.electron.ipcRenderer.invoke('get-projects')
-      .then((projects) => {
-        if (Array.isArray(projects)) {
-          setProjectList(projects);
-        }
-      });
+    const loadProjects = async () => {
+      try {
+        const res = await fetch('https://api.lajungle.net/project', {
+          headers: {
+            Authorization: `Bearer ${userData.token}`
+          }
+        });
+        const apiProjects = await res.json();
 
-    // ✅ Écoute les mises à jour en live
-    const handleStatus = (_, updatedProject) => {
-      setProjectList((prevList) => {
-        const existingIndex = prevList.findIndex(p => p.nomProjet === updatedProject.nomProjet);
-        if (existingIndex !== -1) {
-          const updated = [...prevList];
-          updated[existingIndex] = updatedProject;
-          return updated;
-        }
-        return [...prevList, updatedProject];
-      });
+        setProjectList(apiProjects.map(p => ({
+          ...p,
+          isLoading: false,
+          hasHeaderIssue: false
+        })));
+
+        // lecture fichiers locaux
+        const metaRaw = await window.electron.readFile('projets.json');
+        const metaProjects = JSON.parse(metaRaw);
+
+        setProjectListTMA(metaProjects.map(p => ({
+          ...p,
+          isLoading: true,
+          hasHeaderIssue: false
+        })));
+
+        const fullProjectsTMA = (
+          await Promise.all(
+            apiProjects.map(async (apiProject) => {
+              const meta = metaProjects.find(p => p.idApi === apiProject.id);
+
+              if (!meta) return null; // ⛔️ Ne retourne rien si pas trouvé
+
+              // const isValid = await window.electron.checkSheetHeaders(meta.spreadsheetId, meta.sheetName);
+              const isValid = true;
+
+              return {
+                ...apiProject,
+                ...meta,
+                hasHeaderIssue: !isValid
+              };
+            })
+          )
+        ).filter(Boolean); // ✅ Élimine tous les "null"
+
+        setProjectListTMA(fullProjectsTMA);
+      } catch (err) {
+        console.error('❌ Erreur chargement projets :', err);
+      }
     };
 
-    window.electron.ipcRenderer.on('project-status', handleStatus);
-
-    return () => {
-      window.electron.ipcRenderer.removeListener('project-status', handleStatus);
-    };
-  }, []);
-
-  useEffect(() => {
-    const handler = (_, { name, current, total }) => {
-      setCheckingProject(name);
-      setProgress({ current, total });
-    };
-
-    window.electron.ipcRenderer.on("project-checking", handler);
-
-    return () => {
-      window.electron.ipcRenderer.removeListener("project-checking", handler);
-    };
-  }, []);
+    if (userData?.token) {
+      loadProjects();
+    }
+  }, [userData]);
 
   useEffect(() => {
     // window.electron.ipcRenderer.on('app-loaded', () => setIsLoading(false));
@@ -213,113 +297,118 @@ const App = () => {
   }, [activeTimers]);
 
   return (
-    <>
-      <AnimatePresence>
-        {isLoading && (
-          <AnimatedBackground
-            key="loading"
-            loadingText="Chargement"
-            subText={motivationText}
-          />
-        )}
-      </AnimatePresence>
+    <UserContext.Provider value={userData}>
+      <>
+        <AnimatePresence>
+          {isLoading && (
+            <AnimatedBackground
+              key="loading"
+              loadingText="Chargement"
+              subText={motivationText}
+            />
+          )}
+        </AnimatePresence>
 
-      {!isLoading && (
-        <div className="min-h-screen relative text-black">
-          {/* Zone draggable invisible derrière tout */}
-          <div className="absolute inset-0 -z-10 drag overflow-hidden">
-            {Object.values(activeTimers).some(Boolean) && <AnimatedBackground />}
-          </div>
-
-          {/* Contenu UI non draggable */}
-          <div className="relative flex flex-col p-2">
-            <div className="absolute top-0 right-0 z-10 p-2">
-              <button
-                onClick={closeWindow}
-                className="text-sm text-gray-600 hover:text-black"
-              >
-                <X size={20} />
-              </button>
+        {!isLoading && (
+          <div className="min-h-screen relative text-black">
+            {/* Zone draggable invisible derrière tout */}
+            <div className="absolute inset-0 -z-10 drag overflow-hidden">
+              {Object.values(activeTimers).some(Boolean) && <AnimatedBackground />}
             </div>
 
-            <LayoutGroup>
-              <div className="flex flex-col gap-1 overflow-auto mt-6">
-                <AnimatePresence initial={false}>
-                  {timers.length === 0 && (
-                    <div className="text-center text-gray-500 italic my-4">
-                      Cliquez sur{' '}
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-200 rounded text-sm">
-                        <Plus size={14} /> Chrono
-                      </span>{' '}
-                      pour ajouter un minuteur
-                    </div>
-                  )}
-
-                  {timers.map((id, index) => {
-                    const colorClass = COLORS[index % COLORS.length];
-
-                    return (
-                      <motion.div
-                        key={id}
-                        initial={{ opacity: 0, x: 100 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 300 }}
-                        transition={{ type: 'spring', duration: 0.4 }}
-                      >
-                        <TimerCard
-                          id={id}
-                          onDelete={deleteTimer}
-                          onRunningChange={updateRunningStatus}
-                          isActive={activeTimerId === id}
-                          onActivate={() => setActiveTimerId(id)}
-                          color={colorClass}
-                          projectList={projectList}
-                          setProjectList={setProjectList}
-                        />
-                      </motion.div>
-                    );
-                  })}
-                </AnimatePresence>
+            {/* Contenu UI non draggable */}
+            <div className="relative flex flex-col p-2">
+              <div className="absolute top-0 right-0 z-10 p-2">
+                <button
+                  onClick={closeWindow}
+                  className="text-sm text-gray-600 hover:text-black"
+                >
+                  <X size={20} />
+                </button>
               </div>
-            </LayoutGroup>
-            <div className="mt-2 text-center flex justify-end">
-              <button
-                onClick={addTimer}
-                className="text-sm px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded flex justify-end"
-              >
-                <Plus size={18} /> Chrono
-              </button>
+
+              <LayoutGroup>
+                <div className="flex flex-col gap-1 overflow-auto mt-6">
+                  <AnimatePresence initial={false}>
+                    {timers.length === 0 && (
+                      <div className="text-center text-gray-500 italic my-4">
+                        Cliquez sur{' '}
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-200 rounded text-sm">
+                          <Plus size={14} /> Chrono
+                        </span>{' '}
+                        pour ajouter un minuteur
+                      </div>
+                    )}
+
+                    {timers.map((id, index) => {
+                      const colorClass = COLORS[index % COLORS.length];
+
+                      return (
+                        <motion.div
+                          key={id}
+                          initial={{ opacity: 0, x: 100 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 300 }}
+                          transition={{ type: 'spring', duration: 0.4 }}
+                        >
+                          <TimerCard
+                            id={id}
+                            onDelete={deleteTimer}
+                            onSuccessCallback={onSuccessDashboard}
+                            onRunningChange={updateRunningStatus}
+                            isActive={activeTimerId === id}
+                            onActivate={() => setActiveTimerId(id)}
+                            color={colorClass}
+                            projectList={projectList}
+                            projectListTMA={projectListTMA}
+                            setProjectList={setProjectList}
+                            setProjectListTMA={setProjectListTMA}
+                          />
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+              </LayoutGroup>
+              <div className="mt-2 text-center flex justify-end">
+                <button
+                  onClick={addTimer}
+                  className="text-sm px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded flex justify-end"
+                >
+                  <Plus size={18} /> Chrono
+                </button>
+              </div>
             </div>
+
+            <div className="absolute bottom-2 right-2 text-xs text-gray-400 flex items-center gap-1">
+              v{window?.appVersion || "1.0.0-202504031348"}
+
+              <button onClick={() => setShowHelp(true)} className="text-sm hover:underline">
+                <HelpCircleIcon size={16} />
+              </button>
+
+            </div>
+
+            {/* Messages d’état en bas à droite */}
+            <div
+              className="absolute bottom-2 left-2 text-xs text-gray-400 max-h-5 max-w-60"
+            >
+              {userData && (
+                <p>{userData.firstname}, {totalDayTime}</p>
+              )}
+              {!userData && (
+                <button onClick={() => setShowLogin(true)} className="text-sm hover:underline">
+                  <UserIcon size={16} />
+                </button>
+              )}
+            </div>
+
+            {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+            {showLogin && <LoginModal onLoginSuccess={() => loginSuccess()} onClose={() => setShowLogin(false)} />}
           </div>
-
-          <div className="absolute bottom-2 right-2 text-xs text-gray-400 flex items-center gap-1">
-            v{window?.appVersion || "1.0.0-202504031348"}
-
-            <button onClick={() => setShowHelp(true)} className="text-sm hover:underline">
-              <HelpCircleIcon size={16} />
-            </button>
-
-          </div>
-
-          {/* Messages d’état en bas à droite */}
-          <AnimatePresence>
-            {footerMessage && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                transition={{ duration: 0.3 }}
-                className="absolute bottom-0 left-2 text-xs text-gray-400 max-h-5 max-w-60"
-              >
-                {footerMessage}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
-        </div>
-      )}
-    </>
+        )}
+      </>
+    </UserContext.Provider>
   );
 };
 

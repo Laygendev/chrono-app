@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   X, Check, FolderIcon, ClockIcon, CheckSquare, Plus, Minus, CircleDashed,
   ArrowLeft,
@@ -20,6 +20,23 @@ import ProjectDropdown from './ProjectDropdown';
 import Logger from 'electron-log';
 import { motion, AnimatePresence } from 'framer-motion';
 import CommitDropdown from './CommitDropdown';
+import { UserContext } from '../contexts/UserContext';
+
+// Convertit une durée "HH:mm:ss" en millisecondes
+const parseDuration = (timeStr) => {
+  const [h, m, s] = timeStr.split(':').map(Number);
+  return ((h * 60 + m) * 60 + s) * 1000;
+};
+
+// Convertit des millisecondes en format "HH:mm:ss"
+const formatDuration = (ms) => {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+  const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+  const seconds = String(totalSeconds % 60).padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
+};
+
 
 function useTooltip() {
   const [tooltip, setTooltip] = useState({ visible: false, text: '', x: 0, y: 0 });
@@ -45,26 +62,7 @@ function useTooltip() {
   return { showTooltip, hideTooltip, renderTooltip };
 }
 
-const categories = [
-  { label: 'Maintenance', Icon: Settings, slug: 'maintenance', bg: 'bg-gray-100', hb: 'hover:bg-gray-200' },
-  { label: 'Développement', Icon: FileCode2, slug: 'developpement', bg: 'bg-blue-100', hb: 'hover:bg-blue-200' },
-  { label: 'Conception', Icon: FolderIcon, slug: 'conception', bg: 'bg-purple-100', hb: 'hover:bg-purple-200' },
-  { label: "Commercial / Appel d'offre", Icon: Briefcase, slug: 'commercial-appel-offre', bg: 'bg-yellow-100', hb: 'hover:bg-yellow-200' },
-  { label: 'Intégration', Icon: Layout, slug: 'integration', bg: 'bg-orange-100', hb: 'hover:bg-orange-200' },
-  { label: 'Création graphique', Icon: Paintbrush2, slug: 'creation-graphique', bg: 'bg-pink-100', hb: 'hover:bg-pink-200' },
-  { label: 'Déclinaison graphique', Icon: Paintbrush2, slug: 'declinaison-graphique', bg: 'bg-pink-50', hb: 'hover:bg-pink-100' },
-  { label: 'Recette', Icon: ListChecks, slug: 'recette', bg: 'bg-green-100', hb: 'hover:bg-green-200' },
-  { label: 'Web Marketing', Icon: GlobeIcon, slug: 'web-marketing', bg: 'bg-emerald-100', hb: 'hover:bg-emerald-200' },
-  { label: 'Suivi de projet', Icon: Users, slug: 'suivi-de-projet', bg: 'bg-indigo-100', hb: 'hover:bg-indigo-200' },
-  { label: 'Community management', Icon: Users, slug: 'community-management', bg: 'bg-cyan-100', hb: 'hover:bg-cyan-200' },
-  { label: 'Déplacement / Trajet', Icon: MapPin, slug: 'deplacement-trajet', bg: 'bg-red-100', hb: 'hover:bg-red-200' },
-  { label: 'Réunion', Icon: CheckSquare, slug: 'reunion', bg: 'bg-lime-100', hb: 'hover:bg-lime-200' },
-  { label: 'Veille', Icon: Eye, slug: 'veille', bg: 'bg-fuchsia-100', hb: 'hover:bg-fuchsia-200' },
-  { label: 'SEO', Icon: Search, slug: 'seo', bg: 'bg-amber-100', hb: 'hover:bg-amber-200' },
-  { label: 'Wireframe', Icon: FileText, slug: 'wireframe', bg: 'bg-sky-100', hb: 'hover:bg-sky-200' }
-];
-
-const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, forcedStep, forcedCategory }) => {
+const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, projectListTMA, setProjectListTMA, forcedStep, forcedCategory }) => {
   const { showTooltip, hideTooltip, renderTooltip } = useTooltip();
 
   const [editedTime, setEditedTime] = useState(time);
@@ -84,6 +82,56 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, for
   const adjustBoxRef = React.useRef(null);
   const buttonRef = React.useRef(null);
   const closeTimeout = React.useRef(null);
+
+  const user = useContext(UserContext);
+
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const token = user?.token;
+        const res = await fetch('https://api.lajungle.net/task/types', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        console.log(data);
+
+        const icons = [
+          Settings, FileCode2, FolderIcon, Briefcase, Layout, Paintbrush2,
+          Paintbrush2, ListChecks, GlobeIcon, Users, Users, MapPin,
+          CheckSquare, Eye, Search, FileText
+        ];
+
+        const colors = [
+          ['gray', 100], ['blue', 100], ['purple', 100], ['yellow', 100],
+          ['orange', 100], ['pink', 100], ['pink', 50], ['green', 100],
+          ['emerald', 100], ['indigo', 100], ['cyan', 100], ['red', 100],
+          ['lime', 100], ['fuchsia', 100], ['amber', 100], ['sky', 100]
+        ];
+
+        const withStyle = data.map((cat, i) => {
+          const [color, shade] = colors[i % colors.length];
+          return {
+            id: cat.id, // <-- important
+            name: cat.name, // <-- important
+            label: cat.name, // pour affichage
+            Icon: icons[i % icons.length],
+            slug: cat.name.toLowerCase().replace(/ /g, '-').replace(/'/g, '').replace(/\//g, '-'),
+            bg: `bg-${color}-${shade}`,
+            hb: `hover:bg-${color}-${Math.min(shade + 100, 900)}`
+          };
+        });
+
+        setCategories(withStyle);
+      } catch (err) {
+        console.error('Erreur chargement catégories :', err);
+      }
+    };
+
+    fetchCategories();
+  }, [user]);
 
   useEffect(() => {
     if (forcedStep) setStep(forcedStep);
@@ -147,26 +195,107 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, for
     return () => clearInterval(interval);
   }, []);
 
-  const handleValider = () => {
-    if (!selectedFile || !editedTime || !message) return alert('Tous les champs doivent être remplis.');
-    const selected = projectList.find(p => p.nomProjet === selectedFile);
+  const handleValider = async () => {
+    if (!selectedFile || !editedTime) return alert('Tous les champs doivent être remplis.');
+    let selected;
+    if (selectedCategory === 'Maintenance') {
+      if (!message) {
+        return alert('Tous les champs doivent être remplis.');
+      }
+
+      selected = projectListTMA.find(p => p.name === selectedFile);
+    } else {
+      selected = projectList.find(p => p.name === selectedFile);
+    }
+
     if (!selected) return;
 
     setIsSubmitting(true);
-    window.electron.ipcRenderer.once('append-to-sheet-success', () => {
-      const url = `https://docs.google.com/spreadsheets/d/${selected.spreadsheetId}`;
-      new Notification('Temps ajouté', { body: `🕒 ${editedTime} ajouté à « ${selected.nomProjet} »` })
-        .onclick = () => window.electron.ipcRenderer.send('open-external-url', url);
-      setIsSubmitting(false);
-      if (onSuccess) onSuccess();
-      onClose();
+
+    if (selectedCategory === 'Maintenance') {
+      window.electron.ipcRenderer.once('append-to-sheet-success', () => {
+        const url = `https://docs.google.com/spreadsheets/d/${selected.spreadsheetId}`;
+        new Notification('Temps ajouté', { body: `🕒 ${editedTime} ajouté à « ${selected.name} »` })
+          .onclick = () => window.electron.ipcRenderer.send('open-external-url', url);
+        setIsSubmitting(false);
+        if (onSuccess) onSuccess();
+        onClose();
+      });
+
+      const firstname = user?.firstname;
+
+      window.electron.ipcRenderer.send('append-to-sheet', {
+        spreadsheetId: selected.spreadsheetId,
+        sheetName: selected.sheetName,
+        values: [[message, selectedCommitUrl, firstname, new Date().toLocaleDateString('fr-FR'), editedTime]]
+      });
+    }
+
+    const token = user?.token;
+    if (!token) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const res = await fetch(`https://api.lajungle.net/task/mine/${today}`, {
+      headers: {
+        Authorization: `Bearer ${user.token}`
+      }
     });
 
-    window.electron.ipcRenderer.send('append-to-sheet', {
-      spreadsheetId: selected.spreadsheetId,
-      sheetName: selected.sheetName,
-      values: [[message, selectedCommitUrl, 'Jimmy', new Date().toLocaleDateString('fr-FR'), editedTime]]
+    if (!res.ok) throw new Error('Échec de récupération des tâches');
+    const tasks = await res.json();
+
+    // Recherche la task qui correspond project_id et task_id. Permet de faire la somme de la duration de celle-ci avec editedTime pour accumuler stp.
+    const existingTask = tasks.find(task => {
+      const match = task.project_id === selected.id && task.type_id === categories.find(c => c.name === selectedCategory)?.id;
+      if (match) {
+        console.log('Task correspondante trouvée :', task);
+      }
+      return match;
     });
+
+    let tmpEditedTime = editedTime;
+
+    if (existingTask) {
+      const current = parseDuration(existingTask.duration);
+      const addition = parseDuration(editedTime);
+      const total = current + addition;
+      tmpEditedTime = formatDuration(total);
+    }
+    const data = JSON.stringify({
+      date: today,
+      project_id: selected.id, // côté JS, `idApi` = ID projet
+      task_id: categories.find(c => c.name === selectedCategory)?.id, // à adapter selon ton backend
+      duration: tmpEditedTime
+    });
+
+    const userResponse = await fetch('https://api.lajungle.net/task/updateOrCreate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: data,
+    });
+
+    if (!userResponse.ok) {
+      alert('Erreur lors de l\'ajout du temps');
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Check if is valid JSON
+    try {
+      await userResponse.json();
+    } catch (err) {
+      alert('Erreur lors de l\'ajout du temps');
+      setIsSubmitting(false);
+      return;
+    }
+
+    new Notification('Temps ajouté dans le dashboard', { body: `🕒 ${editedTime} ajouté à « ${selected.name} »` })
+    setIsSubmitting(false);
+    if (onSuccess) onSuccess();
+    onClose();
   };
 
   const handleSelectCommit = (val) => {
@@ -200,15 +329,15 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, for
               </button>
 
               {selectedCategory && (() => {
-                const cat = categories.find(c => c.label === selectedCategory);
-                return cat ? <cat.Icon className={`w-4 h-4 rounded-full`} title={cat.label} /> : null;
+                const cat = categories.find(c => c.name === selectedCategory);
+                return cat?.Icon ? <cat.Icon className="w-4 h-4 rounded-full" title={cat.name} /> : null;
               })()}
             </>
           )}
 
           {selectedCategory && step === 2 && (() => {
-            const cat = categories.find(c => c.label === selectedCategory);
-            return <h2 className="font-medium text-center">{cat.label}</h2>
+            const cat = categories.find(c => c.name === selectedCategory);
+            return cat ? <h2 className="font-medium text-center">{cat.name}</h2> : null;
           })()}
 
           {step === 1 && <h2 className="font-medium text-center">Catégorie</h2>}
@@ -228,9 +357,9 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, for
           <motion.div layout>
             <div className="flex flex-col items-center mt-2 justify-center">
               <div className="grid grid-cols-3 gap-3 mb-2 overflow-y-auto max-h-52 px-1">
-                {categories.map(({ label, Icon, bg, hb }, i) => (
+                {categories.map(({ name, Icon, bg, hb }, i) => (
                   <motion.div
-                    key={label}
+                    key={name}
                     className="flex flex-col items-center justify-start"
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -238,16 +367,15 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, for
                   >
                     <button
                       onClick={() => {
-                        setSelectedCategory(label);
+                        setSelectedCategory(name);
                         setStep(2);
                       }}
-                      disabled={label !== 'Maintenance'}
-                      className={`w-14 h-14 ${bg} rounded-full flex items-center justify-center shadow-sm transition ${label !== 'Maintenance' ? 'opacity-20' : `${hb}`}`}
+                      className={`w-14 h-14 ${bg} rounded-full flex items-center justify-center shadow-sm transition ${hb}`}
                     >
                       <Icon className="w-5 h-5" />
                     </button>
                     <span className="text-xs text-gray-700 mt-1 text-center leading-tight max-w-[80px] truncate">
-                      {label}
+                      {name}
                     </span>
                   </motion.div>
                 ))}
@@ -260,7 +388,7 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, for
           <motion.div layout>
             <div className="mb-3 mt-4 flex gap-4">
               <ProjectDropdown
-                projects={projectList}
+                projects={selectedCategory === 'Maintenance' ? projectListTMA : projectList}
                 selectedFile={selectedFile}
                 setSelectedFile={setSelectedFile}
               />

@@ -8,7 +8,15 @@ contextBridge.exposeInMainWorld('electron', {
     removeListener: (...args) => ipcRenderer.removeListener(...args),
     invoke: (...args) => ipcRenderer.invoke(...args)
   },
+  store: {
+    get: (key) => ipcRenderer.invoke('store:get', key),
+    set: (key, value) => ipcRenderer.invoke('store:set', key, value),
+    clear: () => ipcRenderer.invoke('store:clear'),
+  },
   getTodaysCommits: () => ipcRenderer.invoke('get-todays-commits'),
-  getProjectsWithChecks: () => ipcRenderer.invoke('get-projects-with-checks'),
-  getProjects: () => ipcRenderer.invoke('get-projects')
+  getGoogleAuth: () => ipcRenderer.invoke('get-auth'),
+  getGoogleSheetsClient: (auth) => require('googleapis').google.sheets({ version: 'v4', auth }),
+  readFile: (relativePath) => ipcRenderer.invoke('read-file', relativePath),
+  checkSheetHeaders: (spreadsheetId, sheetName) =>
+    ipcRenderer.invoke('check-sheet-headers', spreadsheetId, sheetName)
 });

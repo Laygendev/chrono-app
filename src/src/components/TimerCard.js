@@ -4,7 +4,7 @@ import TimerModal from './TimerModal';
 import { Play, Pause, StopCircle, Trash } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const TimerCard = ({ id, onDelete, onRunningChange, isActive, onActivate, color, projectList, setProjectList }) => {
+const TimerCard = ({ id, onDelete, onSuccessCallback, onRunningChange, isActive, onActivate, color, projectList, setProjectList, projectListTMA, setProjectListTMA }) => {
   const { time, start, pause, reset } = useTimer();
   const [modalState, setModalState] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -56,6 +56,7 @@ const TimerCard = ({ id, onDelete, onRunningChange, isActive, onActivate, color,
   };
 
   const onSuccess = () => {
+    onSuccessCallback(id);
     onDelete(id);
   };
 
@@ -124,6 +125,8 @@ const TimerCard = ({ id, onDelete, onRunningChange, isActive, onActivate, color,
             time={time}
             projectList={projectList}
             setProjectList={setProjectList}
+            projectListTMA={projectListTMA}
+            setProjectListTMA={setProjectListTMA}
             forcedStep={modalState.step}
             forcedCategory={modalState.selectedCategory}
           />

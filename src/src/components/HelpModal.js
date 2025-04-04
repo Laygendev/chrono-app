@@ -17,11 +17,19 @@ const sections = [
     },
     {
         title: 'Catégories',
-        text: 'Les catégories vous permettent de classer votre temps par type d’activité (développement, réunion, veille, etc.). La catégorie “Maintenance”, lorsqu’elle est utilisée, envoie automatiquement les informations dans le Google Sheets associé au projet.'
+        text: 'Les catégories vous permettent de classer votre temps par type d’activité (développement, réunion, veille, etc.). Ces catégories sont synchronisées avec celles du dashboard LaJungle. Lorsqu’une catégorie est utilisée, le temps est automatiquement injecté dans les données du dashboard.'
     },
     {
         title: 'Google Sheets',
         text: 'Les temps sont automatiquement envoyés vers un fichier Google Sheets lié à chaque projet. Le commit sélectionné est aussi intégré si présent. Certains projets peuvent être désactivés dans la liste déroulante s’ils ne respectent pas le format attendu (en-têtes manquantes ou incorrectes).'
+    },
+    {
+        title: 'Limite journalière de 7h',
+        text: 'Lorsque vous atteignez 7 heures de temps comptabilisé dans une journée, un message d’alerte s’affiche et les temps saisis au-delà ne sont plus injectés dans le dashboard de LaJungle.'
+    },
+    {
+        title: 'Configuration des projets',
+        text: 'Il n’est pas possible d’ajouter manuellement des projets. Ceux-ci sont configurés automatiquement dans l’application via un système centralisé.'
     }
 ];
 
