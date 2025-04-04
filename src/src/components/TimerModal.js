@@ -171,13 +171,13 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, pro
   const adjustTimeBy = (delta) => {
     const [h, m, s] = editedTime.split(':').map(Number);
     let total = h * 60 + m;
-  
+
     // On ramène au multiple de 5 le plus proche vers le bas, puis on ajoute ou retire
     total = Math.floor(total / 5) * 5 + delta;
-  
+
     // Minimum 0
     if (total < 0) total = 0;
-  
+
     const hours = String(Math.floor(total / 60)).padStart(2, '0');
     const minutes = String(total % 60).padStart(2, '0');
     setEditedTime(`${hours}:${minutes}:00`);
@@ -329,27 +329,37 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, pro
 
 
         <div className="flex items-center gap-1 text-gray-500">
-          {step === 2 && (
-            <>
-              <button
-                onClick={() => setStep(1)}
-                className="hover:bg-gray-100 rounded-full transition"
-                title="Changer de catégorie"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-
-              {selectedCategory && (() => {
-                const cat = categories.find(c => c.name === selectedCategory);
-                return cat?.Icon ? <cat.Icon className="w-4 h-4 rounded-full" title={cat.name} /> : null;
-              })()}
-            </>
-          )}
-
-          {selectedCategory && step === 2 && (() => {
+          {step === 2 && selectedCategory && (() => {
             const cat = categories.find(c => c.name === selectedCategory);
-            return cat ? <h2 className="font-medium text-center">{cat.name}</h2> : null;
+            if (!cat) return null;
+
+            const { Icon, name } = cat;
+
+            return (
+              <motion.div
+                onClick={() => setStep(1)}
+                className="flex items-center gap-2 text-gray-500 mb-2 cursor-pointer rounded-lg p-1"
+                title="Changer de catégorie"
+                whileHover="hover"
+                initial="rest"
+                animate="rest"
+              >
+                <motion.div
+                  variants={{
+                    rest: { x: 0 },
+                    hover: { x: 4 }
+                  }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </motion.div>
+
+                {Icon && <Icon className="w-4 h-4 rounded-full" title={name} />}
+                <h2 className="font-medium text-sm text-gray-700">{name}</h2>
+              </motion.div>
+            );
           })()}
+
 
           {step === 1 && <h2 className="font-medium text-center">Catégorie</h2>}
 
