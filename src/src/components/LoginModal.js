@@ -57,13 +57,13 @@ const LoginModal = ({ onClose, onLoginSuccess }) => {
         <div className="flex items-center gap-2 text-gray-500 mb-4">
           <h2 className="font-medium text-center text-lg">Connexion</h2>
           <div className="ml-auto">
-            <button
+            {/* <button
               onClick={onClose}
               className="hover:bg-gray-100 rounded-full p-1 transition"
               title="Fermer"
             >
               <X className="w-4 h-4" />
-            </button>
+            </button> */}
           </div>
         </div>
 
@@ -92,13 +92,13 @@ const LoginModal = ({ onClose, onLoginSuccess }) => {
         {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
 
         <div className="flex justify-end gap-2">
-          <button
+          {/* <button
             onClick={onClose}
             disabled={isSubmitting}
             className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-black transition"
           >
             Annuler
-          </button>
+          </button> */}
           <button
             onClick={handleLogin}
             disabled={isSubmitting}

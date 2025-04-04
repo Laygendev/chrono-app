@@ -132,10 +132,12 @@ const App = () => {
       if (user) {
         setUserData(user);
         setShowLogin(false);
+      } else {
+        setShowLogin(true);
       }
     };
 
-    fetchUser(); // 👈 on appelle la fonction async ici
+    fetchUser();
   }, []);
 
   const loginSuccess = async () => {
