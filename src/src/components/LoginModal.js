@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { X, User } from 'lucide-react';
 
 const LoginModal = ({ onClose, onLoginSuccess }) => {
-  const [email, setEmail] = useState('jimmy@lajungle.fr');
-  const [password, setPassword] = useState('lajungle33');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 

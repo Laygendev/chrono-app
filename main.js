@@ -1,5 +1,5 @@
 // main.js
-const { app, BrowserWindow, ipcMain, shell, powerMonitor } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, powerMonitor, globalShortcut } = require('electron');
 const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
@@ -17,6 +17,9 @@ log.transports.file.resolvePath = () =>
     path.join(app.getPath('userData'), 'logs/main.log'); // <- sûr et propre
 
 log.info('App started');
+
+let hasActiveTimer = false;
+
 
 let cachedRepos = [];
 let cachedCommits = [];
@@ -210,6 +213,13 @@ async function createWindow() {
         }
     });
 
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+        const isCmdOrCtrlW = (input.key.toLowerCase() === 'w') && (input.control || input.meta);
+        if (isCmdOrCtrlW) {
+            event.preventDefault(); // 🔥 empêche la fermeture
+            console.log('❌ Ctrl+W ou Cmd+W bloqué via before-input-event');
+        }
+    });
     setupGitCommitListener();
 
     mainWindow.webContents.once('did-finish-load', async () => {
@@ -225,8 +235,32 @@ app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
+const quitPrompt = (e) => {
+    if (e) e.preventDefault();
+
+    if (hasActiveTimer) {
+        const { dialog } = require('electron');
+        const choice = dialog.showMessageBoxSync({
+            type: 'warning',
+            buttons: ['Annuler', 'Quitter quand même'],
+            defaultId: 0,
+            cancelId: 0,
+            title: 'Chrono actif',
+            message: 'Un chrono est en cours. Êtes-vous sûr de vouloir quitter ?'
+        });
+
+        if (choice === 1) {
+            hasActiveTimer = false; // on laisse passer la prochaine fois
+            app.quit(); // relance volontairement le quit
+        }
+    } else {
+        app.quit();
+    }
+}
+
+app.on('before-quit', quitPrompt);
 ipcMain.on('close-window', () => {
-    if (mainWindow) mainWindow.close();
+    quitPrompt();
 });
 
 ipcMain.on('append-to-sheet', async (event, { spreadsheetId, sheetName, values }) => {
@@ -349,3 +383,7 @@ ipcMain.handle('read-file', async (event, relativePath) => {
         throw new Error(`Impossible de lire ${relativePath}`);
     }
 });
+
+ipcMain.on('update-timer-status', (event, status) => {
+    hasActiveTimer = status;
+});  

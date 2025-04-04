@@ -33,6 +33,18 @@ const App = () => {
   const [footerMessage, setFooterMessage] = useState('');
   const [showHelp, setShowHelp] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [timerValues, setTimerValues] = useState({});
+
+  const handleTimeUpdate = (id, time) => {
+    setTimerValues(prev => ({ ...prev, [id]: time }));
+  };
+
+  useEffect(() => {
+    const anyRunning = Object.values(activeTimers).some(Boolean);
+    const allZero = Object.values(timerValues).every(t => t === '00:00:00');
+    window?.electron?.ipcRenderer?.send('update-timer-status', anyRunning && !allZero);
+  }, [activeTimers, timerValues]);
+
 
   const positiveMessages = [
     "Respire… ou alors mange du chocolat, ça marche aussi.",
@@ -82,6 +94,15 @@ const App = () => {
   const [userData, setUserData] = useState(null);
 
   const [totalDayTime, setTotalDayTime] = useState('00:00:00');
+
+  useEffect(() => {
+    const anyRunning = Object.values(activeTimers).some(Boolean);
+    // Vérifier aussi que tous les timers soit à 0 ou pas 
+    const allZero = Object.values(timerValues).every(t => t === '00:00:00');
+    console.log(allZero);
+    window?.electron?.ipcRenderer?.send('update-timer-status', anyRunning || !allZero);
+  }, [activeTimers, timerValues]);
+
 
   const fetchDayTotal = async () => {
     try {
@@ -365,6 +386,7 @@ const App = () => {
                             projectListTMA={projectListTMA}
                             setProjectList={setProjectList}
                             setProjectListTMA={setProjectListTMA}
+                            onTimeUpdate={handleTimeUpdate}
                           />
                         </motion.div>
                       );
