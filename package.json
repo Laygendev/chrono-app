@@ -47,7 +47,7 @@
       "config.json",
       "preload.js",
       "token.json",
-      "projet.json",
+      "projets.json",
       "auth.js",
       "get-token.js",
       "store.js",
