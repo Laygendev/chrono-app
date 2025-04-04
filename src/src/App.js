@@ -429,7 +429,7 @@ const App = () => {
             </div>
 
             <div className="absolute bottom-2 right-2 text-xs text-gray-400 flex items-center gap-1">
-              v{window?.appVersion || "1.0.0-202504031348"}
+              v{window?.appVersion || "1.0.1-202504042221"}
 
               <button onClick={() => setShowHelp(true)} className="text-sm hover:underline">
                 <HelpCircleIcon size={16} />

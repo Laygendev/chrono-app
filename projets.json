@@ -474,14 +474,6 @@
     {
         "idApi": 508,
         "spreadsheetId": "1LNVWsVKEjWyKa6d1Ra5gFjWHj1vmIF1E3yXUo93seWg",
-        "sheetName": "TMA EVOLUTIONS",
-        "name": "METROPOLITAIN FILMS (EVOL)",
-        "comment": "Objet Tracker Personne Date Temps passé",
-        "link": "https://docs.google.com/spreadsheets/d/1LNVWsVKEjWyKa6d1Ra5gFjWHj1vmIF1E3yXUo93seWg"
-    },
-    {
-        "idApi": 508,
-        "spreadsheetId": "1LNVWsVKEjWyKa6d1Ra5gFjWHj1vmIF1E3yXUo93seWg",
         "sheetName": "TMA 2025",
         "name": "METROPOLITAIN FILMS (2025)",
         "comment": "Objet Tracker Personne Date Temps passé",

@@ -170,10 +170,19 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, pro
 
   const adjustTimeBy = (delta) => {
     const [h, m, s] = editedTime.split(':').map(Number);
-    let total = h * 60 + m + delta;
+    let total = h * 60 + m;
+  
+    // On ramène au multiple de 5 le plus proche vers le bas, puis on ajoute ou retire
+    total = Math.floor(total / 5) * 5 + delta;
+  
+    // Minimum 0
     if (total < 0) total = 0;
-    setEditedTime(`${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}:00`);
+  
+    const hours = String(Math.floor(total / 60)).padStart(2, '0');
+    const minutes = String(total % 60).padStart(2, '0');
+    setEditedTime(`${hours}:${minutes}:00`);
   };
+
 
   const openAdjustBox = () => setShowAdjustBox(true);
   const closeAdjustBox = () => setShowAdjustBox(false);
@@ -357,34 +366,80 @@ const TimerModal = ({ onClose, time, onSuccess, projectList, setProjectList, pro
 
         {step === 1 && (
           <motion.div layout>
-            <div className="flex flex-col items-center mt-2 justify-center">
-              <div className="grid grid-cols-3 gap-3 mb-2 overflow-y-auto max-h-52 px-1">
-                {categories.map(({ name, Icon, bg, hb }, i) => (
-                  <motion.div
-                    key={name}
-                    className="flex flex-col items-center justify-start"
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.02 }}
-                  >
-                    <button
-                      onClick={() => {
-                        setSelectedCategory(name);
-                        setStep(2);
-                      }}
-                      className={`w-14 h-14 ${bg} rounded-full flex items-center justify-center shadow-sm transition ${hb}`}
+            <div className="mt-2 max-h-56 overflow-y-auto px-1 space-y-4">
+
+              {/* Catégories principales */}
+              <div>
+                <h3 className="text-xs font-semibold text-gray-500 mb-2 pl-1 uppercase tracking-wide">
+                  Principales
+                </h3>
+                <div className="grid grid-cols-2 gap-3 bg-white/70 backdrop-blur-md p-3 rounded-xl shadow-sm border border-gray-200">
+                  {categories
+                    .filter(cat => ['maintenance', 'développement', 'developpement'].includes(cat.name.toLowerCase()))
+                    .map(({ name, Icon, bg, hb }, i) => (
+                      <motion.div
+                        key={name}
+                        className="flex flex-col items-center justify-start"
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.02 }}
+                      >
+                        <button
+                          onClick={() => {
+                            setSelectedCategory(name);
+                            setStep(2);
+                          }}
+                          className={`w-14 h-14 ${bg} rounded-full flex items-center justify-center shadow transition ${hb}`}
+                        >
+                          <Icon className="w-5 h-5" />
+                        </button>
+                        <span className="text-xs text-gray-700 mt-1 text-center leading-tight max-w-[80px] truncate">
+                          {name}
+                        </span>
+                      </motion.div>
+                    ))}
+                </div>
+              </div>
+
+              {/* Séparateur élégant */}
+              <div className="flex items-center gap-2 px-1 text-gray-400 text-xs uppercase tracking-wide">
+                <div className="flex-1 h-px bg-gray-200" />
+                autres
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+
+              {/* Autres catégories */}
+              <div className="grid grid-cols-3 gap-3">
+                {categories
+                  .filter(cat => !['maintenance', 'développement', 'developpement'].includes(cat.name.toLowerCase()))
+                  .map(({ name, Icon, bg, hb }, i) => (
+                    <motion.div
+                      key={name}
+                      className="flex flex-col items-center justify-start"
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.02 }}
                     >
-                      <Icon className="w-5 h-5" />
-                    </button>
-                    <span className="text-xs text-gray-700 mt-1 text-center leading-tight max-w-[80px] truncate">
-                      {name}
-                    </span>
-                  </motion.div>
-                ))}
+                      <button
+                        onClick={() => {
+                          setSelectedCategory(name);
+                          setStep(2);
+                        }}
+                        className={`w-14 h-14 ${bg} rounded-full flex items-center justify-center shadow-sm transition ${hb}`}
+                      >
+                        <Icon className="w-5 h-5" />
+                      </button>
+                      <span className="text-xs text-gray-700 mt-1 text-center leading-tight max-w-[80px] truncate">
+                        {name}
+                      </span>
+                    </motion.div>
+                  ))}
               </div>
             </div>
+
           </motion.div>
         )}
+
 
         {step === 2 && (
           <motion.div layout>

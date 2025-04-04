@@ -1,7 +1,7 @@
 {
   "name": "chrono-app",
   "productName": "Chronomate",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Application de chronomètres multiples avec Electron, React et Google Sheets",
   "main": "main.js",
   "author": "Jimmy Le Boss",
