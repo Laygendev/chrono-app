@@ -222,9 +222,9 @@ async function createWindow() {
     });
     setupGitCommitListener();
 
-    mainWindow.webContents.once('did-finish-load', async () => {
-        await loadProjectsWithHeaderChecks(); // ✅ ici, le renderer est prêt à écouter
-    });
+    // mainWindow.webContents.once('did-finish-load', async () => {
+    //     await loadProjectsWithHeaderChecks(); // ✅ ici, le renderer est prêt à écouter
+    // });
 }
 
 app.whenReady().then(createWindow);
@@ -318,35 +318,35 @@ ipcMain.on('open-external-url', (event, url) => {
 //     }
 // }
 
-// async function loadProjectsWithHeaderChecks() {
-//     const raw = fs.readFileSync(path.join(__dirname, 'projet.json'), 'utf8');
-//     const projects = JSON.parse(raw);
+// // async function loadProjectsWithHeaderChecks() {
+// //     const raw = fs.readFileSync(path.join(__dirname, 'projet.json'), 'utf8');
+// //     const projects = JSON.parse(raw);
 
-//     // Affiche tous les projets dans la liste avec un état "en cours"
-//     projects.forEach((project) => {
-//         allProjectList.push({ ...project, isLoading: true, hasHeaderIssue: false });
-//     });
+// //     // Affiche tous les projets dans la liste avec un état "en cours"
+// //     projects.forEach((project) => {
+// //         allProjectList.push({ ...project, isLoading: true, hasHeaderIssue: false });
+// //     });
 
-//     const checked = [];
+// //     const checked = [];
 
-//     for (let index = 0; index < projects.length; index++) {
-//         const project = projects[index];
+// //     for (let index = 0; index < projects.length; index++) {
+// //         const project = projects[index];
 
-//         const result = await checkProjectSheetHeaders(project);
-//         checked.push(result);
+// //         const result = await checkProjectSheetHeaders(project);
+// //         checked.push(result);
 
-//         // Ensuite on envoie le résultat final
-//         mainWindow?.webContents.send("project-status", {
-//             ...result,
-//             isLoading: false
-//         });
+// //         // Ensuite on envoie le résultat final
+// //         mainWindow?.webContents.send("project-status", {
+// //             ...result,
+// //             isLoading: false
+// //         });
 
-//         await delay(200);
-//     }
+// //         await delay(200);
+// //     }
 
-//     checkedProjectList = checked;
-//     mainWindow.webContents.send('app-loaded');
-// }
+// //     checkedProjectList = checked;
+// //     mainWindow.webContents.send('app-loaded');
+// // }
 
 // ipcMain.handle('get-projects', () => {
 //     return allProjectList;
@@ -356,11 +356,11 @@ ipcMain.on('open-external-url', (event, url) => {
 //     return checkedProjectList;
 // });
 
+const auth = getAuth();
+const sheets = google.sheets({ version: 'v4', auth });
 
 ipcMain.handle('check-sheet-headers', async (event, spreadsheetId, sheetName) => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const auth = getAuth();
-    const sheets = google.sheets({ version: 'v4', auth });
+    console.log('Checking sheet headers for', spreadsheetId, sheetName)
     const res = await sheets.spreadsheets.values.get({
         spreadsheetId,
         range: `${sheetName}!A1:F1`,

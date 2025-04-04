@@ -99,7 +99,6 @@ const App = () => {
     const anyRunning = Object.values(activeTimers).some(Boolean);
     // Vérifier aussi que tous les timers soit à 0 ou pas 
     const allZero = Object.values(timerValues).every(t => t === '00:00:00');
-    console.log(allZero);
     window?.electron?.ipcRenderer?.send('update-timer-status', anyRunning || !allZero);
   }, [activeTimers, timerValues]);
 
@@ -223,27 +222,52 @@ const App = () => {
           isLoading: true,
           hasHeaderIssue: false
         })));
+        // Étape 1 : On prépare les projets valides avec meta
+        const initialProjects = apiProjects
+          .map(apiProject => {
+            const meta = metaProjects.find(p => p.idApi === apiProject.id);
+            if (!meta) return null;
 
-        const fullProjectsTMA = (
-          await Promise.all(
-            apiProjects.map(async (apiProject) => {
-              const meta = metaProjects.find(p => p.idApi === apiProject.id);
+            return {
+              ...apiProject,
+              ...meta,
+              isLoading: true,
+              hasHeaderIssue: false
+            };
+          })
+          .filter(Boolean);
 
-              if (!meta) return null; // ⛔️ Ne retourne rien si pas trouvé
+        // On affiche directement tous les projets "en chargement"
+        setProjectListTMA(initialProjects);
 
-              // const isValid = await window.electron.checkSheetHeaders(meta.spreadsheetId, meta.sheetName);
-              const isValid = true;
+        // Étape 2 : Vérification des headers projet par projet
+        for (const project of initialProjects) {
+          await new Promise(resolve => setTimeout(resolve, 500));
 
-              return {
-                ...apiProject,
-                ...meta,
-                hasHeaderIssue: !isValid
-              };
-            })
-          )
-        ).filter(Boolean); // ✅ Élimine tous les "null"
+          let isValid = false;
 
-        setProjectListTMA(fullProjectsTMA);
+          try {
+            isValid = await window.electron.checkSheetHeaders(
+              project.spreadsheetId,
+              project.sheetName
+            );
+          } catch (error) {
+            console.error(`❌ Erreur lors de la vérification des headers pour ${project.name}:`, error);
+            // isValid reste à false => hasHeaderIssue = true
+          }
+
+          const updatedProject = {
+            ...project,
+            isLoading: false,
+            hasHeaderIssue: !isValid
+          };
+
+          setProjectListTMA(prev =>
+            prev.map(p =>
+              p.idApi === updatedProject.idApi ? updatedProject : p
+            )
+          );
+        }
       } catch (err) {
         console.error('❌ Erreur chargement projets :', err);
       }

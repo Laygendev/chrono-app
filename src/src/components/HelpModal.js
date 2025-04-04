@@ -24,6 +24,10 @@ const sections = [
         text: 'Les temps sont automatiquement envoyés vers un fichier Google Sheets lié à chaque projet. Le commit sélectionné est aussi intégré si présent. Certains projets peuvent être désactivés dans la liste déroulante s’ils ne respectent pas le format attendu (en-têtes manquantes ou incorrectes).'
     },
     {
+        title: 'Commits liés à un ticket',
+        text: 'En mode “Maintenance”, une liste déroulante affiche tous les commits Git réalisés aujourd’hui contenant une référence du type "refs #12345 - Mon message". Le numéro (ex. 12345) correspond au ticket lié, et le texte après le tiret est automatiquement repris dans le champ de commentaire. Cela permet un gain de temps et une meilleure traçabilité dans les fichiers de maintenance.'
+    },
+    {
         title: 'Limite journalière de 7h',
         text: 'Lorsque vous atteignez 7 heures de temps comptabilisé dans une journée, un message d’alerte s’affiche et les temps saisis au-delà ne sont plus injectés dans le dashboard de LaJungle.'
     },
