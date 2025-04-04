@@ -1,6 +1,6 @@
 {
   "name": "chrono-app",
-  "productName": "Chrono App",
+  "productName": "Chronomate",
   "version": "1.0.0",
   "description": "Application de chronomètres multiples avec Electron, React et Google Sheets",
   "main": "main.js",
@@ -31,7 +31,7 @@
   },
   "build": {
     "appId": "com.laygendev.chronoapp",
-    "productName": "Chrono APP",
+    "productName": "Chronomate",
     "directories": {
       "buildResources": "assets"
     },
